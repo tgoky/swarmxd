@@ -1,0 +1,23 @@
+{
+  "name": "@swarm/on-chain",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "anchor build",
+    "deploy:devnet": "anchor deploy --provider.cluster devnet",
+    "deploy:mainnet": "anchor deploy --provider.cluster mainnet",
+    "test": "anchor test",
+    "idl:generate": "anchor idl parse --file programs/swarm-memory/src/lib.rs > idl/swarm_memory.json",
+    "idl:deploy": "anchor idl upgrade --filepath idl/swarm_memory.json $SWARM_MEMORY_PROGRAM_ID"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@solana/web3.js": "^1.91.0"
+  },
+  "devDependencies": {
+    "chai": "^4.3.4",
+    "mocha": "^9.0.3",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^5.4.0"
+  }
+}

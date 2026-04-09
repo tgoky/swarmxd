@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWARM CONDUCTOR — DeFi Orchestra</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg: #060810;
+    --surface: #0d1117;
+    --surface2: #131923;
+    --border: #1e2d3d;
+    --border2: #243040;
+    --text: #c9d8e8;
+    --text2: #6b8099;
+    --text3: #3d5268;
+    --green: #00e5a0;
+    --green-dim: rgba(0,229,160,0.12);
+    --red: #ff4060;
+    --red-dim: rgba(255,64,96,0.12);
+    --yellow: #ffd060;
+    --yellow-dim: rgba(255,208,96,0.10);
+    --blue: #4090ff;
+    --blue-dim: rgba(64,144,255,0.12);
+    --purple: #a060ff;
+    --purple-dim: rgba(160,96,255,0.10);
+    --cyan: #00d4ff;
+    --glow-green: 0 0 20px rgba(0,229,160,0.3);
+    --glow-red: 0 0 20px rgba(255,64,96,0.3);
+    --font-mono: 'Space Mono', monospace;
+    --font-display: 'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    overflow: hidden;
+  }
+
+  /* Scanline overlay */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── Layout ──────────────────────────────── */
+  .app {
+    display: grid;
+    height: 100vh;
+    grid-template-rows: 56px 1fr;
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: relative;
+    z-index: 100;
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+    opacity: 0.4;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 28px; height: 28px;
+    border: 1.5px solid var(--green);
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    position: relative;
+    box-shadow: var(--glow-green);
+  }
+
+  .logo-icon::before {
+    content: '◎';
+    color: var(--green);
+    font-size: 14px;
+    animation: pulse-icon 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-icon {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .logo-text { color: #fff; }
+  .logo-text span { color: var(--green); }
+
+  .header-center {
+    display: flex;
+    gap: 6px;
+  }
+
+  .epoch-badge {
+    font-size: 11px;
+    color: var(--text2);
+    padding: 4px 10px;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid;
+    transition: all 0.3s;
+  }
+
+  .status-pill.live {
+    color: var(--green);
+    border-color: rgba(0,229,160,0.3);
+    background: var(--green-dim);
+  }
+
+  .status-pill.halted {
+    color: var(--red);
+    border-color: rgba(255,64,96,0.3);
+    background: var(--red-dim);
+    animation: halt-blink 1s step-end infinite;
+  }
+
+  @keyframes halt-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .status-pill.live .status-dot { animation: dot-pulse 1.5s ease infinite; }
+  @keyframes dot-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5); opacity: 0.7; }
+  }
+
+  .header-right { display: flex; align-items: center; gap: 12px; }
+
+  .conn-indicator {
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .conn-indicator.connected { color: var(--green); }
+
+  /* ── Main grid ────────────────────────────── */
+  .main {
+    display: grid;
+    grid-template-columns: 280px 1fr 320px;
+    grid-template-rows: 1fr;
+    height: calc(100vh - 56px);
+    overflow: hidden;
+  }
+
+  /* ── Panels ───────────────────────────────── */
+  .panel {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel:last-child { border-right: none; }
+
+  .panel-header {
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .panel-title {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text2);
+  }
+
+  .panel-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--surface2);
+    color: var(--text3);
+    border: 1px solid var(--border);
+  }
+
+  .panel-body { flex: 1; overflow-y: auto; padding: 8px; }
+  .panel-body::-webkit-scrollbar { width: 3px; }
+  .panel-body::-webkit-scrollbar-track { background: transparent; }
+  .panel-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ── Center panel ─────────────────────────── */
+  .center-panel {
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    overflow: hidden;
+  }
+
+  /* ── Stats bar ────────────────────────────── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .stat {
+    padding: 16px 20px;
+    border-right: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat:last-child { border-right: none; }
+
+  .stat::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .stat.positive::after { background: var(--green); opacity: 1; }
+  .stat.negative::after { background: var(--red); opacity: 1; }
+  .stat.neutral::after { background: var(--blue); opacity: 1; }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+  }
+
+  .stat-value.positive { color: var(--green); }
+  .stat-value.negative { color: var(--red); }
+
+  .stat-sub {
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+
+  /* ── Agent constellation ──────────────────── */
+  .agent-ring {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .agent-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: default;
+    transition: transform 0.2s;
+  }
+
+  .agent-node:hover { transform: translateY(-2px); }
+
+  .agent-orb {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    border: 1.5px solid;
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    position: relative;
+    transition: box-shadow 0.3s;
+  }
+
+  .agent-orb::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 1px solid;
+    opacity: 0.2;
+    animation: orb-spin 8s linear infinite;
+  }
+
+  @keyframes orb-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .agent-orb.idle { border-color: var(--border2); color: var(--text3); }
+  .agent-orb.analyzing {
+    border-color: var(--yellow);
+    box-shadow: 0 0 16px rgba(255,208,96,0.3);
+    animation: analyzing-pulse 0.8s ease-in-out infinite;
+  }
+  .agent-orb.voting {
+    border-color: var(--blue);
+    box-shadow: 0 0 16px rgba(64,144,255,0.3);
+  }
+  .agent-orb.executing {
+    border-color: var(--green);
+    box-shadow: var(--glow-green);
+    animation: analyzing-pulse 0.5s ease-in-out infinite;
+  }
+  .agent-orb.error { border-color: var(--red); box-shadow: var(--glow-red); }
+
+  @keyframes analyzing-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  .agent-label {
+    font-size: 10px;
+    text-align: center;
+    color: var(--text2);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    max-width: 70px;
+  }
+
+  .agent-status-text {
+    font-size: 9px;
+    color: var(--text3);
+    text-align: center;
+  }
+
+  /* Conductor node is special */
+  .conductor-node .agent-orb {
+    width: 64px; height: 64px;
+    font-size: 22px;
+    border-color: var(--cyan);
+    box-shadow: 0 0 24px rgba(0,212,255,0.25);
+  }
+
+  .conductor-node .agent-orb::before { border-color: var(--cyan); }
+  .conductor-node .agent-label { color: var(--cyan); font-size: 11px; }
+
+  /* Connection lines between agents */
+  .agent-connections {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  /* ── Activity feed ────────────────────────── */
+  .feed-item {
+    display: flex;
+    gap: 10px;
+    padding: 9px 8px;
+    border-radius: 6px;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    animation: feed-enter 0.3s ease-out;
+  }
+
+  @keyframes feed-enter {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .feed-item:hover { background: var(--surface2); border-color: var(--border); }
+
+  .feed-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+
+  .feed-dot.info { background: var(--blue); }
+  .feed-dot.success { background: var(--green); }
+  .feed-dot.warning { background: var(--yellow); }
+  .feed-dot.error { background: var(--red); }
+
+  .feed-content { flex: 1; min-width: 0; }
+  .feed-title { color: var(--text); font-size: 12px; line-height: 1.4; }
+  .feed-detail { color: var(--text3); font-size: 10px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .feed-time { font-size: 10px; color: var(--text3); flex-shrink: 0; }
+
+  /* ── Signal cards ─────────────────────────── */
+  .signal-card {
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    margin-bottom: 4px;
+    cursor: default;
+    transition: border-color 0.2s;
+    animation: feed-enter 0.25s ease-out;
+  }
+
+  .signal-card:hover { border-color: var(--border2); }
+
+  .signal-card.critical { border-left: 3px solid var(--red); }
+  .signal-card.high { border-left: 3px solid var(--yellow); }
+  .signal-card.medium { border-left: 3px solid var(--blue); }
+  .signal-card.low { border-left: 3px solid var(--text3); }
+
+  .signal-type {
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+
+  .signal-card.critical .signal-type { color: var(--red); }
+  .signal-card.high .signal-type { color: var(--yellow); }
+  .signal-card.medium .signal-type { color: var(--blue); }
+  .signal-card.low .signal-type { color: var(--text2); }
+
+  .signal-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  .tag {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Proposal cards ───────────────────────── */
+  .proposal-card {
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    margin-bottom: 6px;
+    animation: feed-enter 0.25s ease-out;
+  }
+
+  .proposal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .proposal-agent {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .proposal-agent.researcher { color: var(--blue); }
+  .proposal-agent.risk-assessor { color: var(--red); }
+  .proposal-agent.executor { color: var(--green); }
+  .proposal-agent.rebalancer { color: var(--purple); }
+
+  .proposal-action {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .proposal-reasoning {
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+
+  .vote-bar {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  .vote-chip {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .vote-chip.approve { border-color: rgba(0,229,160,0.4); color: var(--green); background: var(--green-dim); }
+  .vote-chip.reject { border-color: rgba(255,64,96,0.4); color: var(--red); background: var(--red-dim); }
+  .vote-chip.abstain { border-color: var(--border2); color: var(--text3); }
+
+  .confidence-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .confidence-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue), var(--cyan));
+    border-radius: 1px;
+    transition: width 0.5s ease;
+  }
+
+  /* ── Portfolio ────────────────────────────── */
+  .portfolio-section {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .portfolio-value {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .portfolio-return {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .portfolio-return.positive { color: var(--green); }
+  .portfolio-return.negative { color: var(--red); }
+
+  .position-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+  }
+
+  .position-row:last-child { border-bottom: none; }
+
+  .position-protocol {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    width: 60px;
+    flex-shrink: 0;
+  }
+
+  .protocol-raydium { color: var(--purple); }
+  .protocol-orca { color: var(--cyan); }
+  .protocol-meteora { color: var(--yellow); }
+  .protocol-kamino { color: var(--blue); }
+
+  .position-bar-wrap {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .position-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--blue), var(--cyan));
+    transition: width 0.6s ease;
+  }
+
+  .position-apy {
+    font-size: 11px;
+    color: var(--green);
+    font-weight: 700;
+    width: 45px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .position-value {
+    font-size: 11px;
+    color: var(--text2);
+    width: 60px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── Execution log ────────────────────────── */
+  .exec-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+  }
+
+  .exec-item:hover { background: var(--surface2); border-color: var(--border); }
+
+  .exec-status {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+
+  .exec-status.confirmed { background: var(--green); }
+  .exec-status.failed { background: var(--red); }
+  .exec-status.submitted { background: var(--yellow); animation: analyzing-pulse 0.8s infinite; }
+  .exec-status.simulating { background: var(--blue); animation: analyzing-pulse 1s infinite; }
+  .exec-status.pending { background: var(--text3); }
+
+  .exec-type { font-size: 12px; color: var(--text); font-weight: 700; }
+  .exec-sig { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-top: 2px; }
+
+  /* ── Chart ────────────────────────────────── */
+  .pnl-chart {
+    padding: 16px;
+    height: 120px;
+    flex-shrink: 0;
+  }
+
+  .chart-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  canvas { width: 100% !important; height: 100% !important; }
+
+  /* ── Halt overlay ─────────────────────────── */
+  .halt-banner {
+    background: var(--red-dim);
+    border-bottom: 1px solid rgba(255,64,96,0.4);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--red);
+    font-weight: 700;
+    animation: halt-blink 1s step-end infinite;
+  }
+
+  /* ── Misc ─────────────────────────────────── */
+  .empty {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--text3);
+    font-size: 11px;
+  }
+
+  .mono { font-family: var(--font-mono); }
+
+  .grid-cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+
+  @keyframes number-tick {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .tick-anim { animation: number-tick 0.3s ease-out; }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon"></div>
+      <div class="logo-text"><span>SWARM</span> CONDUCTOR</div>
+    </div>
+
+    <div class="header-center">
+      <div class="epoch-badge" id="epochBadge">EPOCH —</div>
+      <div class="epoch-badge" id="networkBadge">SOLANA MAINNET</div>
+    </div>
+
+    <div class="header-right">
+      <div class="conn-indicator" id="connIndicator">● DISCONNECTED</div>
+      <div class="status-pill live" id="statusPill">
+        <div class="status-dot"></div>
+        <span id="statusText">LIVE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- HALT BANNER (hidden by default) -->
+  <div class="halt-banner" id="haltBanner" style="display:none;">
+    🚨 SWARM HALTED — <span id="haltReason">Unknown reason</span>
+  </div>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- LEFT: Agents + Signals -->
+    <div class="panel" style="display:flex;flex-direction:column;">
+
+      <!-- Agent constellation -->
+      <div class="panel-header">
+        <span class="panel-title">Swarm Agents</span>
+        <span class="panel-badge" id="agentCount">0 active</span>
+      </div>
+      <div style="padding: 16px 12px; border-bottom: 1px solid var(--border); flex-shrink:0;">
+        <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap: 8px; align-items: end;">
+
+          <!-- Conductor -->
+          <div class="agent-node conductor-node" style="grid-column:1; align-items:center;">
+            <div class="agent-orb" id="orbConductor">🎼</div>
+            <div class="agent-label" style="color:var(--cyan);">Conductor</div>
+            <div class="agent-status-text" id="statusConductor">—</div>
+          </div>
+
+          <!-- Researcher -->
+          <div class="agent-node" style="grid-column:2;">
+            <div class="agent-orb idle" id="orbResearcher">🔭</div>
+            <div class="agent-label">Researcher</div>
+            <div class="agent-status-text" id="statusResearcher">—</div>
+          </div>
+
+          <!-- Risk Assessor -->
+          <div class="agent-node" style="grid-column:3;">
+            <div class="agent-orb idle" id="orbRisk">🛡</div>
+            <div class="agent-label">Risk</div>
+            <div class="agent-status-text" id="statusRisk">—</div>
+          </div>
+
+          <!-- Executor -->
+          <div class="agent-node" style="grid-column:4;">
+            <div class="agent-orb idle" id="orbExecutor">⚡</div>
+            <div class="agent-label">Executor</div>
+            <div class="agent-status-text" id="statusExecutor">—</div>
+          </div>
+
+          <!-- Rebalancer -->
+          <div class="agent-node" style="grid-column:5;">
+            <div class="agent-orb idle" id="orbRebalancer">⚖</div>
+            <div class="agent-label">Rebalancer</div>
+            <div class="agent-status-text" id="statusRebalancer">—</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Signals -->
+      <div class="panel-header" style="border-top: none;">
+        <span class="panel-title">Live Signals</span>
+        <span class="panel-badge" id="signalCount">0</span>
+      </div>
+      <div class="panel-body" id="signalList">
+        <div class="empty">Monitoring on-chain…</div>
+      </div>
+
+    </div>
+
+    <!-- CENTER: Stats + Proposals + Activity -->
+    <div class="center-panel">
+
+      <!-- Stats bar -->
+      <div class="stats-bar">
+        <div class="stat neutral">
+          <div class="stat-label">Portfolio Value</div>
+          <div class="stat-value" id="statPortfolio">$0</div>
+          <div class="stat-sub" id="statPortfolioSub">Loading…</div>
+        </div>
+        <div class="stat" id="statDailyWrap">
+          <div class="stat-label">24h Return</div>
+          <div class="stat-value" id="statDaily">0.00%</div>
+          <div class="stat-sub" id="statDailySub">—</div>
+        </div>
+        <div class="stat neutral">
+          <div class="stat-label">Trades Today</div>
+          <div class="stat-value" id="statTrades">0</div>
+          <div class="stat-sub">Executed</div>
+        </div>
+        <div class="stat neutral">
+          <div class="stat-label">Win Rate</div>
+          <div class="stat-value" id="statWinRate">—</div>
+          <div class="stat-sub">Last 30 trades</div>
+        </div>
+        <div class="stat neutral">
+          <div class="stat-label">Avg APY</div>
+          <div class="stat-value" id="statApy">—</div>
+          <div class="stat-sub">Across positions</div>
+        </div>
+      </div>
+
+      <!-- Proposals -->
+      <div class="panel-header">
+        <span class="panel-title">Active Proposals &amp; Consensus</span>
+        <span class="panel-badge" id="proposalCount">0 pending</span>
+      </div>
+      <div class="panel-body" id="proposalList" style="flex:1; overflow-y:auto; padding:12px;">
+        <div class="empty">Awaiting proposals…</div>
+      </div>
+
+      <!-- Activity feed -->
+      <div style="height: 220px; border-top: 1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0;">
+        <div class="panel-header" style="border-bottom: 1px solid var(--border);">
+          <span class="panel-title">Activity Feed</span>
+        </div>
+        <div class="panel-body" id="activityFeed" style="padding:6px 8px;">
+          <div class="empty">Listening for events…</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Portfolio + Executions -->
+    <div class="panel" style="display:flex; flex-direction:column;">
+
+      <!-- Portfolio -->
+      <div class="panel-header">
+        <span class="panel-title">Portfolio</span>
+        <span class="panel-badge" id="walletBadge">No wallet</span>
+      </div>
+
+      <div class="portfolio-section">
+        <div class="portfolio-value" id="portfolioValue">$0.00</div>
+        <div class="portfolio-return" id="portfolioReturn">+0.00% today</div>
+      </div>
+
+      <!-- Positions -->
+      <div style="padding: 8px 16px; flex-shrink:0; border-bottom: 1px solid var(--border);">
+        <div style="font-size:10px; color:var(--text3); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;">Positions</div>
+        <div id="positionList">
+          <div class="empty" style="padding:16px 0;">No positions</div>
+        </div>
+      </div>
+
+      <!-- Executions -->
+      <div class="panel-header" style="border-top: none;">
+        <span class="panel-title">Executions</span>
+        <span class="panel-badge" id="execCount">0</span>
+      </div>
+      <div class="panel-body" id="execList">
+        <div class="empty">No executions yet</div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+const state = {
+  connected: false,
+  isHalted: false,
+  portfolio: null,
+  signals: [],
+  proposals: [],
+  executions: [],
+  agents: {},
+  epoch: 0,
+  trades: 0,
+};
+
+// ─── WebSocket ────────────────────────────────────────────────────────────────
+let ws = null;
+const WS_URL = (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + (window.location.hostname || 'localhost') + ':3001/ws';
+
+function connect() {
+  ws = new WebSocket(WS_URL);
+
+  ws.onopen = () => {
+    state.connected = true;
+    document.getElementById('connIndicator').textContent = '● CONNECTED';
+    document.getElementById('connIndicator').className = 'conn-indicator connected';
+  };
+
+  ws.onclose = () => {
+    state.connected = false;
+    document.getElementById('connIndicator').textContent = '● DISCONNECTED';
+    document.getElementById('connIndicator').className = 'conn-indicator';
+    setTimeout(connect, 3000);
+  };
+
+  ws.onmessage = (e) => {
+    try {
+      const { channel, payload } = JSON.parse(e.data);
+      handleMessage(channel, payload);
+    } catch {}
+  };
+}
+
+function handleMessage(channel, payload) {
+  switch (channel) {
+    case 'state:snapshot':
+      applySnapshot(payload);
+      break;
+    case 'swarm:portfolio:update':
+      state.portfolio = payload;
+      renderPortfolio();
+      renderStats();
+      break;
+    case 'swarm:signal:new':
+      state.signals.unshift(payload);
+      state.signals = state.signals.slice(0, 50);
+      renderSignals();
+      addActivity('signal', payload.priority === 'critical' ? 'error' : payload.priority === 'high' ? 'warning' : 'info',
+        `Signal: ${payload.type.replace(/_/g,' ')}`,
+        `${payload.priority} priority • ${(payload.confidence*100).toFixed(0)}% confidence`);
+      break;
+    case 'swarm:proposal:new':
+      state.proposals.unshift(payload);
+      state.proposals = state.proposals.slice(0, 20);
+      setAgentStatus(payload.agentRole, 'analyzing');
+      renderProposals();
+      addActivity('proposal', 'info',
+        `${payload.agentRole} proposed ${payload.action.type}`,
+        `Confidence ${(payload.confidence*100).toFixed(0)}%`);
+      break;
+    case 'swarm:vote:cast': {
+      const idx = state.proposals.findIndex(p => p.id === payload.proposalId);
+      if (idx >= 0) {
+        if (!state.proposals[idx].votes) state.proposals[idx].votes = [];
+        const alreadyVoted = state.proposals[idx].votes.some(v => v.agentId === payload.agentId);
+        if (!alreadyVoted) state.proposals[idx].votes.push(payload);
+        renderProposals();
+      }
+      setAgentStatus(payload.agentRole, 'voting');
+      addActivity('vote', payload.decision === 'reject' ? 'warning' : payload.decision === 'approve' ? 'success' : 'info',
+        `${payload.agentRole} voted ${payload.decision}`, payload.reasoning);
+      break;
+    }
+    case 'swarm:consensus:reached':
+      if (payload.passed) setAgentStatus('executor', 'executing');
+      addActivity('consensus',
+        payload.passed ? 'success' : 'warning',
+        payload.passed ? '✅ Consensus PASSED' : '❌ Consensus REJECTED',
+        `${(payload.weightedScore*100).toFixed(0)}% approval`);
+      setTimeout(() => { Object.keys(state.agents).forEach(id => setAgentStatusById(id, 'idle')); }, 3000);
+      break;
+    case 'swarm:execution:update': {
+      const ei = state.executions.findIndex(e => e.id === payload.id);
+      if (ei >= 0) state.executions[ei] = payload;
+      else { state.executions.unshift(payload); state.executions = state.executions.slice(0, 50); }
+      if (payload.status === 'confirmed') {
+        state.trades++;
+        setAgentStatus('executor', 'idle');
+      }
+      renderExecutions();
+      if (payload.status === 'confirmed') addActivity('execution', 'success', `✅ ${payload.action.type} confirmed`, payload.txSignatures[0]?.slice(0,20)+'…');
+      else if (payload.status === 'failed') addActivity('execution', 'error', `❌ ${payload.action.type} failed`, payload.errorMessage);
+      break;
+    }
+    case 'swarm:agent:heartbeat':
+      state.agents[payload.agentId] = payload;
+      renderAgents();
+      break;
+    case 'swarm:halt':
+      state.isHalted = true;
+      document.getElementById('haltBanner').style.display = 'flex';
+      document.getElementById('haltReason').textContent = payload.reason || 'Unknown';
+      document.getElementById('statusPill').className = 'status-pill halted';
+      document.getElementById('statusText').textContent = 'HALTED';
+      addActivity('halt', 'error', '🚨 SWARM HALTED', payload.reason);
+      break;
+    case 'swarm:resume':
+      state.isHalted = false;
+      document.getElementById('haltBanner').style.display = 'none';
+      document.getElementById('statusPill').className = 'status-pill live';
+      document.getElementById('statusText').textContent = 'LIVE';
+      addActivity('halt', 'success', '✅ Swarm Resumed', '');
+      break;
+  }
+  state.epoch++;
+  document.getElementById('epochBadge').textContent = `EPOCH ${state.epoch}`;
+}
+
+function applySnapshot(snap) {
+  state.portfolio = snap.portfolio;
+  state.signals = snap.signals || [];
+  state.proposals = snap.proposals || [];
+  state.executions = snap.executions || [];
+  state.agents = snap.agents || {};
+  state.isHalted = snap.isHalted || false;
+  renderAll();
+}
+
+// ─── Renderers ────────────────────────────────────────────────────────────────
+
+function renderAll() {
+  renderStats();
+  renderPortfolio();
+  renderSignals();
+  renderProposals();
+  renderExecutions();
+  renderAgents();
+}
+
+function renderStats() {
+  const p = state.portfolio;
+  if (!p) return;
+
+  const valEl = document.getElementById('statPortfolio');
+  valEl.textContent = '$' + p.totalValueUsd.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  valEl.className = 'stat-value';
+
+  const daily = p.dailyReturnPct || 0;
+  const dailyEl = document.getElementById('statDaily');
+  dailyEl.textContent = (daily >= 0 ? '+' : '') + (daily*100).toFixed(2) + '%';
+  dailyEl.className = 'stat-value ' + (daily >= 0 ? 'positive' : 'negative');
+  document.getElementById('statDailyWrap').className = 'stat ' + (daily >= 0 ? 'positive' : 'negative');
+
+  document.getElementById('statTrades').textContent = state.trades;
+  document.getElementById('statPortfolioSub').textContent = `Idle: $${p.idleUsdc?.toFixed(2) || '0.00'}`;
+
+  const avgApy = p.positions?.length > 0
+    ? (p.positions.reduce((s,pos) => s + (pos.currentApy || 0), 0) / p.positions.length).toFixed(1) + '%'
+    : '—';
+  document.getElementById('statApy').textContent = avgApy;
+}
+
+function renderPortfolio() {
+  const p = state.portfolio;
+  if (!p) return;
+
+  document.getElementById('portfolioValue').textContent =
+    '$' + p.totalValueUsd.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  const daily = p.dailyReturnPct || 0;
+  const retEl = document.getElementById('portfolioReturn');
+  retEl.textContent = (daily >= 0 ? '+' : '') + (daily*100).toFixed(2) + '% today';
+  retEl.className = 'portfolio-return ' + (daily >= 0 ? 'positive' : 'negative');
+
+  const wallet = p.walletAddress ? p.walletAddress.slice(0,6)+'…'+p.walletAddress.slice(-4) : 'No wallet';
+  document.getElementById('walletBadge').textContent = wallet;
+
+  const posEl = document.getElementById('positionList');
+  if (!p.positions || p.positions.length === 0) {
+    posEl.innerHTML = '<div class="empty" style="padding:12px 0;">No active positions</div>';
+    return;
+  }
+
+  posEl.innerHTML = p.positions.map(pos => {
+    const pct = p.totalValueUsd > 0 ? (pos.valueUsd / p.totalValueUsd * 100) : 0;
+    return `
+      <div class="position-row">
+        <div class="position-protocol protocol-${pos.protocol}">${pos.protocol.slice(0,6)}</div>
+        <div class="position-bar-wrap">
+          <div class="position-bar" style="width:${pct.toFixed(1)}%"></div>
+        </div>
+        <div class="position-apy">${pos.currentApy?.toFixed(1) || '0.0'}%</div>
+        <div class="position-value">$${pos.valueUsd?.toFixed(0) || '0'}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderSignals() {
+  const el = document.getElementById('signalList');
+  document.getElementById('signalCount').textContent = state.signals.length;
+  if (state.signals.length === 0) {
+    el.innerHTML = '<div class="empty">Monitoring on-chain…</div>';
+    return;
+  }
+  el.innerHTML = state.signals.slice(0, 20).map(s => `
+    <div class="signal-card ${s.priority}">
+      <div class="signal-type">${s.type.replace(/_/g,' ')}</div>
+      <div class="signal-meta">
+        <span class="tag">${s.source}</span>
+        <span class="tag">${(s.confidence*100).toFixed(0)}% conf</span>
+        <span class="tag" style="color:${priorityColor(s.priority)}">${s.priority}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderProposals() {
+  const el = document.getElementById('proposalList');
+  const active = state.proposals.filter(p => !p._dismissed);
+  document.getElementById('proposalCount').textContent = active.length + ' pending';
+
+  if (active.length === 0) {
+    el.innerHTML = '<div class="empty">Awaiting proposals…</div>';
+    return;
+  }
+
+  el.innerHTML = active.slice(0,8).map(p => {
+    const votes = p.votes || [];
+    const approves = votes.filter(v => v.decision === 'approve');
+    const rejects = votes.filter(v => v.decision === 'reject');
+    const abstains = votes.filter(v => v.decision === 'abstain');
+
+    return `
+      <div class="proposal-card">
+        <div class="proposal-header">
+          <span class="proposal-agent ${p.agentRole}">${p.agentRole}</span>
+          <span class="tag" style="color:${urgencyColor(p.urgency)}">${p.urgency}</span>
+        </div>
+        <div class="proposal-action">${p.action.type.replace(/_/g,' ')}</div>
+        <div class="proposal-reasoning">${p.reasoning?.slice(0,120)}${p.reasoning?.length > 120 ? '…' : ''}</div>
+        <div style="display:flex; gap:12px; font-size:10px; color:var(--text3); margin-bottom:6px;">
+          <span>Expected: <span style="color:var(--green)">+$${p.expectedReturnUsd?.toFixed(2)||'0'}</span></span>
+          <span>Downside: <span style="color:var(--red)">-$${p.maxDownsideUsd?.toFixed(2)||'0'}</span></span>
+          <span>Conf: ${(p.confidence*100).toFixed(0)}%</span>
+        </div>
+        <div class="vote-bar">
+          ${approves.map(v => `<div class="vote-chip approve">✓ ${v.agentRole}</div>`).join('')}
+          ${rejects.map(v => `<div class="vote-chip reject">✗ ${v.agentRole}</div>`).join('')}
+          ${abstains.map(v => `<div class="vote-chip abstain">~ ${v.agentRole}</div>`).join('')}
+          ${votes.length === 0 ? '<span style="color:var(--text3);font-size:10px;">Awaiting votes…</span>' : ''}
+        </div>
+        <div class="confidence-bar">
+          <div class="confidence-fill" style="width:${(p.confidence*100).toFixed(0)}%"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderExecutions() {
+  const el = document.getElementById('execList');
+  document.getElementById('execCount').textContent = state.executions.length;
+  if (state.executions.length === 0) {
+    el.innerHTML = '<div class="empty">No executions yet</div>';
+    return;
+  }
+  el.innerHTML = state.executions.slice(0,20).map(e => `
+    <div class="exec-item">
+      <div class="exec-status ${e.status}"></div>
+      <div style="flex:1;min-width:0;">
+        <div class="exec-type">${e.action.type.replace(/_/g,' ')}</div>
+        <div class="exec-sig">${e.status === 'confirmed' ? (e.txSignatures[0]?.slice(0,20)+'…') : e.status}</div>
+        ${e.errorMessage ? `<div style="font-size:10px;color:var(--red);margin-top:2px;">${e.errorMessage.slice(0,60)}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAgents() {
+  const agents = Object.values(state.agents);
+  document.getElementById('agentCount').textContent = agents.length + ' active';
+
+  agents.forEach(agent => {
+    const role = agent.role;
+    const orbId = 'orb' + role.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join('');
+    const statusId = 'status' + role.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join('');
+    const orbEl = document.getElementById(orbId);
+    const statusEl = document.getElementById(statusId);
+    if (orbEl) {
+      orbEl.className = 'agent-orb ' + (agent.status || 'idle');
+    }
+    if (statusEl) {
+      statusEl.textContent = agent.status || 'idle';
+    }
+  });
+}
+
+function setAgentStatus(role, status) {
+  const orbId = 'orb' + role.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join('');
+  const statusId = 'status' + role.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join('');
+  const orbEl = document.getElementById(orbId);
+  const statusEl = document.getElementById(statusId);
+  if (orbEl) orbEl.className = 'agent-orb ' + status;
+  if (statusEl) statusEl.textContent = status;
+}
+
+function setAgentStatusById(agentId, status) {
+  const agent = state.agents[agentId];
+  if (agent) setAgentStatus(agent.role, status);
+}
+
+// ─── Activity feed ────────────────────────────────────────────────────────────
+const activities = [];
+let actSeq = 0;
+
+function addActivity(type, severity, title, detail) {
+  activities.unshift({ id: ++actSeq, type, severity, title, detail, time: new Date() });
+  if (activities.length > 200) activities.pop();
+  renderActivity();
+}
+
+function renderActivity() {
+  const el = document.getElementById('activityFeed');
+  if (activities.length === 0) {
+    el.innerHTML = '<div class="empty">Listening for events…</div>';
+    return;
+  }
+  el.innerHTML = activities.slice(0, 30).map(a => `
+    <div class="feed-item">
+      <div class="feed-dot ${a.severity}"></div>
+      <div class="feed-content">
+        <div class="feed-title">${a.title}</div>
+        ${a.detail ? `<div class="feed-detail">${a.detail}</div>` : ''}
+      </div>
+      <div class="feed-time">${formatTime(a.time)}</div>
+    </div>
+  `).join('');
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function priorityColor(p) {
+  return { critical: 'var(--red)', high: 'var(--yellow)', medium: 'var(--blue)', low: 'var(--text3)' }[p] || 'var(--text3)';
+}
+
+function urgencyColor(u) {
+  return { critical: 'var(--red)', high: 'var(--yellow)', medium: 'var(--blue)', low: 'var(--text3)' }[u] || 'var(--text3)';
+}
+
+function formatTime(d) {
+  if (!d) return '';
+  return d.toLocaleTimeString('en-US', { hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+
+// ─── Demo mode: simulate data if no WS ───────────────────────────────────────
+// (Fires simulated events so you can preview the dashboard without a live swarm)
+function runDemo() {
+  const protocols = ['raydium', 'orca', 'meteora', 'kamino'];
+  const agentRoles = ['researcher', 'risk-assessor', 'executor', 'rebalancer'];
+  const signalTypes = ['apy_spike', 'new_pool', 'rebalance_due', 'price_divergence'];
+
+  // Synthetic portfolio
+  let portfolioValue = 10000;
+  state.portfolio = {
+    walletAddress: 'Sw4rm...D3mo',
+    totalValueUsd: portfolioValue,
+    idleUsdc: 800,
+    positions: [
+      { id: '1', protocol: 'raydium', poolAddress: 'pool1', valueUsd: 3200, pnlUsd: 120, pnlPct: 0.038, currentApy: 42.1 },
+      { id: '2', protocol: 'orca', poolAddress: 'pool2', valueUsd: 2800, pnlUsd: -40, pnlPct: -0.014, currentApy: 31.5 },
+      { id: '3', protocol: 'meteora', poolAddress: 'pool3', valueUsd: 2200, pnlUsd: 88, pnlPct: 0.04, currentApy: 67.3 },
+      { id: '4', protocol: 'kamino', poolAddress: 'pool4', valueUsd: 1000, pnlUsd: 15, pnlPct: 0.015, currentApy: 19.8 },
+    ],
+    dailyReturnPct: 0.0083,
+    allTimeReturnPct: 0.183,
+    lastUpdated: new Date().toISOString(),
+  };
+  state.agents = {
+    'cond-demo': { agentId: 'cond-demo', role: 'conductor', status: 'idle' },
+    'res-demo': { agentId: 'res-demo', role: 'researcher', status: 'idle' },
+    'risk-demo': { agentId: 'risk-demo', role: 'risk-assessor', status: 'idle' },
+    'exec-demo': { agentId: 'exec-demo', role: 'executor', status: 'idle' },
+    'reb-demo': { agentId: 'reb-demo', role: 'rebalancer', status: 'idle' },
+  };
+
+  document.getElementById('connIndicator').textContent = '● DEMO MODE';
+  document.getElementById('connIndicator').className = 'conn-indicator connected';
+  renderAll();
+
+  let seq = 0;
+  let proposalId = null;
+
+  function tick() {
+    seq++;
+
+    // Random portfolio drift
+    portfolioValue += (Math.random() - 0.46) * 15;
+    state.portfolio.totalValueUsd = portfolioValue;
+    state.portfolio.dailyReturnPct = (portfolioValue - 10000) / 10000;
+    state.portfolio.positions.forEach(p => {
+      p.valueUsd += (Math.random() - 0.47) * 5;
+      p.currentApy += (Math.random() - 0.5) * 2;
+      p.currentApy = Math.max(5, p.currentApy);
+    });
+    renderPortfolio();
+    renderStats();
+
+    const r = Math.random();
+
+    if (r < 0.18) {
+      // New signal
+      const sig = {
+        id: 'sig-' + seq,
+        type: signalTypes[Math.floor(Math.random() * signalTypes.length)],
+        priority: ['low','medium','high','critical'][Math.floor(Math.random()*4)],
+        source: ['on-chain','oracle','social'][Math.floor(Math.random()*3)],
+        confidence: 0.6 + Math.random() * 0.38,
+        data: { poolAddress: 'pool' + Math.floor(Math.random()*100), apy: (20 + Math.random()*80).toFixed(1) },
+        detectedAt: new Date().toISOString(),
+      };
+      state.signals.unshift(sig);
+      state.signals = state.signals.slice(0,50);
+      renderSignals();
+      addActivity('signal', sig.priority === 'critical' ? 'error' : 'warning', `Signal: ${sig.type.replace(/_/g,' ')}`, `${sig.priority} priority`);
+      setAgentStatus('researcher', 'analyzing');
+      setTimeout(() => setAgentStatus('researcher', 'idle'), 2000);
+
+    } else if (r < 0.30 && state.signals.length > 0) {
+      // New proposal from researcher
+      proposalId = 'prop-' + seq;
+      const prop = {
+        id: proposalId,
+        agentRole: agentRoles[Math.floor(Math.random()*agentRoles.length)],
+        action: { type: ['rebalance','add_liquidity','harvest_rewards'][Math.floor(Math.random()*3)], params: {} },
+        reasoning: 'Raydium SOL-USDC pool APY spiked from 24% to 41% in the last 30 minutes. TVL stable at $12M. Recommending 25% rebalance from Orca to capture the spread before it normalizes.',
+        confidence: 0.65 + Math.random() * 0.3,
+        expectedReturnUsd: Math.random() * 200,
+        maxDownsideUsd: Math.random() * 80,
+        urgency: ['medium','high'][Math.floor(Math.random()*2)],
+        votes: [],
+        createdAt: new Date().toISOString(),
+      };
+      state.proposals.unshift(prop);
+      renderProposals();
+      addActivity('proposal', 'info', `${prop.agentRole} proposed ${prop.action.type}`, `${(prop.confidence*100).toFixed(0)}% confidence`);
+
+    } else if (r < 0.50 && proposalId) {
+      // Votes coming in
+      const voter = agentRoles[Math.floor(Math.random()*agentRoles.length)];
+      const decision = Math.random() > 0.3 ? 'approve' : Math.random() > 0.5 ? 'reject' : 'abstain';
+      const prop = state.proposals.find(p => p.id === proposalId);
+      if (prop && !prop.votes.some(v => v.agentRole === voter)) {
+        prop.votes.push({ agentId: voter+'-id', agentRole: voter, decision, confidence: 0.7+Math.random()*0.28, reasoning: decision === 'approve' ? 'Risk-adjusted return is favorable given current market conditions.' : 'Concentration risk post-trade exceeds protocol limits.' });
+        renderProposals();
+        setAgentStatus(voter, 'voting');
+        addActivity('vote', decision === 'reject' ? 'warning' : 'success', `${voter} voted ${decision}`, '');
+        setTimeout(() => setAgentStatus(voter, 'idle'), 1500);
+
+        // If all 4 agents voted, consensus
+        if (prop.votes.length >= 4) {
+          const approves = prop.votes.filter(v => v.decision === 'approve').length;
+          const passed = approves >= 3;
+          addActivity('consensus', passed ? 'success' : 'warning', passed ? '✅ Consensus PASSED' : '❌ Consensus REJECTED', `${approves}/4 approvals`);
+          proposalId = null;
+
+          if (passed) {
+            // Execute
+            setAgentStatus('executor', 'executing');
+            const execId = 'exec-' + seq;
+            state.executions.unshift({ id: execId, action: prop.action, status: 'submitted', txSignatures: [], submittedAt: new Date().toISOString() });
+            renderExecutions();
+            state.trades++;
+            setTimeout(() => {
+              const e = state.executions.find(e => e.id === execId);
+              if (e) { e.status = 'confirmed'; e.txSignatures = ['5Kx' + Math.random().toString(36).slice(2,14) + '…']; }
+              renderExecutions();
+              setAgentStatus('executor', 'idle');
+              addActivity('execution', 'success', `✅ ${prop.action.type} confirmed`, '');
+            }, 2500);
+          }
+        }
+      }
+    }
+
+    setTimeout(tick, 1200 + Math.random() * 2000);
+  }
+
+  setTimeout(tick, 500);
+}
+
+// ─── Bootstrap ────────────────────────────────────────────────────────────────
+// Try to connect; if no server, run demo after 2s
+const demoTimeout = setTimeout(() => {
+  if (!state.connected) {
+    console.log('No WS connection — starting demo mode');
+    runDemo();
+  }
+}, 2000);
+
+connect();
+
+// Cancel demo if we connect
+const origOnOpen = null;
+const wsConnectCheck = setInterval(() => {
+  if (state.connected) {
+    clearTimeout(demoTimeout);
+    clearInterval(wsConnectCheck);
+  }
+}, 200);
+</script>
+</body>
+</html>

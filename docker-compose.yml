@@ -1,0 +1,109 @@
+version: "3.9"
+
+# ─── Swarm Conductor — Local Stack ──────────────────────────────────────────────
+# Starts: Redis, API server, Conductor + all agents
+#
+# Usage:
+#   docker compose up -d          # start everything
+#   docker compose logs -f        # tail all logs
+#   docker compose logs conductor # tail conductor only
+#   docker compose down           # stop all
+#
+# Required env file: .env (copy from .env.example)
+
+x-common-env: &common-env
+  SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+  SOLANA_WS_URL: ${SOLANA_WS_URL:-wss://api.devnet.solana.com}
+  SOLANA_NETWORK: ${SOLANA_NETWORK:-devnet}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+  REDIS_URL: redis://redis:6379
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  LOG_FORMAT: json
+  NODE_ENV: production
+
+services:
+
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── API Server ──────────────────────────────────────────────────────────────
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-3001}:3001"
+    environment:
+      <<: *common-env
+      API_PORT: "3001"
+      API_HOST: "0.0.0.0"
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-change-me}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Conductor + Agents (monolith mode) ─────────────────────────────────────
+  # In production: split each agent into its own service
+
+  conductor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: conductor
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+      WALLET_PRIVATE_KEY: ${WALLET_PRIVATE_KEY:-}
+      WALLET_PUBLIC_KEY: ${WALLET_PUBLIC_KEY:-}
+      SWARM_MEMORY_PROGRAM_ID: ${SWARM_MEMORY_PROGRAM_ID:-}
+      MAX_PORTFOLIO_VALUE_USD: ${MAX_PORTFOLIO_VALUE_USD:-10000}
+      MAX_TRADE_SIZE_PCT: ${MAX_TRADE_SIZE_PCT:-0.25}
+      STOP_LOSS_PCT: ${STOP_LOSS_PCT:-0.10}
+      MAX_SLIPPAGE_BPS: ${MAX_SLIPPAGE_BPS:-100}
+      HUMAN_APPROVAL_THRESHOLD_USD: ${HUMAN_APPROVAL_THRESHOLD_USD:-1000}
+      CONDUCTOR_TICK_MS: ${CONDUCTOR_TICK_MS:-30000}
+      CONSENSUS_THRESHOLD: ${CONSENSUS_THRESHOLD:-0.75}
+      DRY_RUN: ${DRY_RUN:-false}
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - conductor-logs:/app/logs
+
+  # ── Dashboard (static file server) ─────────────────────────────────────────
+
+  dashboard:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    volumes:
+      - ./apps/dashboard/public:/usr/share/nginx/html:ro
+    depends_on:
+      - api
+
+volumes:
+  redis-data:
+  conductor-logs:

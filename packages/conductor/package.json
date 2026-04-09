@@ -1,0 +1,15 @@
+{
+  "name": "@swarm/conductor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@swarm/shared": "workspace:*",
+    "@solana/web3.js": "^1.91.0",
+    "nanoid": "^5.0.0"
+  }
+}

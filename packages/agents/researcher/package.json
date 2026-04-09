@@ -1,0 +1,12 @@
+{
+  "name": "@swarm/agent-researcher",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@swarm/shared": "workspace:*",
+    "nanoid": "^5.0.0"
+  }
+}

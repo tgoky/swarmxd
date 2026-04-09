@@ -1,0 +1,39 @@
+{
+  "name": "swarm-conductor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Autonomous Multi-Agent DeFi Orchestra — Swarm Conductor",
+  "workspaces": [
+    "packages/*",
+    "packages/agents/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "conductor:start": "tsx packages/conductor/src/index.ts",
+    "api:start": "tsx apps/api/src/index.ts",
+    "dashboard:start": "cd apps/dashboard && next dev",
+    "chain:build": "cd packages/on-chain && anchor build",
+    "chain:deploy": "cd packages/on-chain && anchor deploy",
+    "chain:test": "cd packages/on-chain && anchor test",
+    "demo": "tsx scripts/demo.ts"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0",
+    "tsx": "^4.7.0",
+    "@types/node": "^20.0.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.0",
+    "vitest": "^1.5.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

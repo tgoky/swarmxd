@@ -1,0 +1,28 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "NODE_ENV",
+    "SOLANA_RPC_URL",
+    "ANTHROPIC_API_KEY",
+    "REDIS_URL",
+    "DATABASE_URL"
+  ],
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "lint": {},
+    "typecheck": {
+      "dependsOn": ["^build"]
+    }
+  }
+}
