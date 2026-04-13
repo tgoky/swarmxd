@@ -1,6 +1,7 @@
 /**
  * Swarm state store — Zustand
  * Populated via WebSocket connection to the API server.
+ * Covers Swarm Conductor + Arena + VeriAgent channels.
  */
 
 import { create } from "zustand";
@@ -96,6 +97,12 @@ export interface SwarmStore {
   // Activity feed
   activityFeed: ActivityItem[];
 
+  // Arena
+  arena: ArenaState;
+
+  // VeriAgent
+  veriagent: VeriAgentState;
+
   // Actions
   setConnected: (v: boolean) => void;
   applyMessage: (channel: string, payload: unknown) => void;
@@ -105,11 +112,49 @@ export interface SwarmStore {
 export interface ActivityItem {
   id: string;
   timestamp: Date;
-  type: "signal" | "proposal" | "vote" | "execution" | "consensus" | "halt" | "heartbeat";
+  type: "signal" | "proposal" | "vote" | "execution" | "consensus" | "halt" | "heartbeat" | "arena" | "veriagent";
   agentRole?: string;
   title: string;
   detail?: string;
   severity: "info" | "success" | "warning" | "error";
+}
+
+// ── Arena ─────────────────────────────────────────────────────────────────────
+
+export interface ArenaEntry {
+  name: string;
+  score: number;
+  winRate: number;
+  followers: number;
+  isMe?: boolean;
+}
+
+export interface ArenaState {
+  myRank: number | null;
+  myScore: number;
+  myWinRate: number;
+  myFollowers: number;
+  isCopying: boolean;
+  leaderboard: ArenaEntry[];
+}
+
+// ── VeriAgent ─────────────────────────────────────────────────────────────────
+
+export interface AuditEntry {
+  verdict: "approved" | "flagged" | "rejected";
+  action: string;
+  decisionHash: string;
+  reasoning: string;
+  trustScore?: number;
+  timestamp: string;
+}
+
+export interface VeriAgentState {
+  registryId: string | null;
+  trustScore: number;
+  totalAudits: number;
+  passedAudits: number;
+  auditLog: AuditEntry[];
 }
 
 let activitySeq = 0;
@@ -125,6 +170,21 @@ export const useSwarmStore = create<SwarmStore>((set, get) => ({
   executions: [],
   pnlHistory: [],
   activityFeed: [],
+  arena: {
+    myRank: null,
+    myScore: 0,
+    myWinRate: 0,
+    myFollowers: 0,
+    isCopying: false,
+    leaderboard: [],
+  },
+  veriagent: {
+    registryId: null,
+    trustScore: 0,
+    totalAudits: 0,
+    passedAudits: 0,
+    auditLog: [],
+  },
 
   setConnected: (v) => set({ connected: v }),
 
@@ -263,6 +323,74 @@ export const useSwarmStore = create<SwarmStore>((set, get) => ({
           executions: (snap.executions as ExecutionState[]) ?? [],
           agents: snap.agents ?? {},
           isHalted: snap.isHalted ?? false,
+          ...(snap.arena ? { arena: snap.arena } : {}),
+          ...(snap.veriagent ? { veriagent: snap.veriagent } : {}),
+        });
+        break;
+      }
+
+      // ── Arena ─────────────────────────────────────────────────
+      case "arena:tick": {
+        const tick = p as { leaderboard?: ArenaEntry[] };
+        if (tick.leaderboard) {
+          set((s) => ({ arena: { ...s.arena, leaderboard: tick.leaderboard! } }));
+        }
+        break;
+      }
+
+      case "arena:rank:update": {
+        const rank = p as { rank: number; score?: number; winRate?: number; followers?: number };
+        set((s) => ({
+          arena: {
+            ...s.arena,
+            myRank: rank.rank,
+            myScore: rank.score ?? s.arena.myScore,
+            myWinRate: rank.winRate ?? s.arena.myWinRate,
+            myFollowers: rank.followers ?? s.arena.myFollowers,
+          },
+        }));
+        addActivity({
+          type: "arena",
+          title: `Arena Rank: #${rank.rank}`,
+          detail: `Score ${(rank.score ?? 0).toFixed(0)} • ${rank.followers ?? 0} followers`,
+          severity: "success",
+        });
+        break;
+      }
+
+      // ── VeriAgent ──────────────────────────────────────────────
+      case "verifier:audit:complete": {
+        const audit = p as AuditEntry;
+        set((s) => {
+          const passed = audit.verdict === "approved" ? s.veriagent.passedAudits + 1 : s.veriagent.passedAudits;
+          const total = s.veriagent.totalAudits + 1;
+          return {
+            veriagent: {
+              ...s.veriagent,
+              totalAudits: total,
+              passedAudits: passed,
+              trustScore: audit.trustScore ?? (passed / total) * 100,
+              auditLog: [audit, ...s.veriagent.auditLog].slice(0, 50),
+            },
+          };
+        });
+        addActivity({
+          type: "veriagent",
+          title: `Audit ${audit.verdict.toUpperCase()}: ${audit.action}`,
+          detail: `Hash: ${audit.decisionHash.slice(0, 20)}…`,
+          severity: audit.verdict === "approved" ? "success" : audit.verdict === "flagged" ? "warning" : "error",
+        });
+        break;
+      }
+
+      case "registry:identity:registered": {
+        const reg = p as { did: string };
+        set((s) => ({ veriagent: { ...s.veriagent, registryId: reg.did } }));
+        addActivity({
+          type: "veriagent",
+          title: "Registry Identity Established",
+          detail: `DID: ${reg.did.slice(0, 24)}…`,
+          severity: "success",
         });
         break;
       }

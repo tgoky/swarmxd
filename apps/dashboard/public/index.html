@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SWARM CONDUCTOR — DeFi Orchestra</title>
+<title>SWARM CONDUCTOR · ARENA · VERIAGENT</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap');
 
@@ -720,6 +720,209 @@
   }
 
   .tick-anim { animation: number-tick 0.3s ease-out; }
+
+  /* ── Product sub-labels in header ─────────── */
+  .product-badges {
+    display: flex;
+    gap: 4px;
+    margin-top: 2px;
+  }
+  .product-badge {
+    font-size: 8px;
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .product-badge.conductor { color: var(--cyan); border: 1px solid rgba(0,212,255,0.3); }
+  .product-badge.arena { color: var(--yellow); border: 1px solid rgba(255,208,96,0.3); }
+  .product-badge.veri { color: var(--purple); border: 1px solid rgba(160,96,255,0.3); }
+
+  /* ── Right panel tabs ─────────────────────── */
+  .right-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .right-tab {
+    flex: 1;
+    padding: 10px 4px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text3);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .right-tab:hover { color: var(--text2); }
+  .right-tab.active { color: var(--text); border-bottom-color: var(--green); }
+  .right-tab.arena.active { border-bottom-color: var(--yellow); color: var(--yellow); }
+  .right-tab.veri.active { border-bottom-color: var(--purple); color: var(--purple); }
+
+  .tab-view { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+  .tab-view.active { display: flex; }
+
+  /* ── Arena ────────────────────────────────── */
+  .arena-my-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .arena-stat-label {
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .arena-stat-value {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+  }
+  .copy-btn {
+    width: 100%;
+    padding: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text2);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .copy-btn:hover { border-color: var(--yellow); color: var(--yellow); }
+  .copy-btn.active { background: var(--yellow-dim); border-color: rgba(255,208,96,0.5); color: var(--yellow); }
+
+  .leaderboard-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 48px 44px 40px;
+    gap: 6px;
+    align-items: center;
+    padding: 8px 6px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    margin-bottom: 2px;
+    font-size: 11px;
+    transition: all 0.15s;
+    animation: feed-enter 0.25s ease-out;
+  }
+  .leaderboard-row:hover { background: var(--surface2); border-color: var(--border); }
+  .leaderboard-row.is-me {
+    background: rgba(255,208,96,0.06);
+    border-color: rgba(255,208,96,0.2);
+  }
+  .lb-rank { font-size: 12px; text-align: center; }
+  .lb-name { color: var(--text); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .leaderboard-row.is-me .lb-name { color: var(--yellow); }
+  .lb-score { color: var(--blue); text-align: right; font-weight: 700; }
+  .lb-winrate { color: var(--green); text-align: right; }
+  .lb-followers { color: var(--text3); text-align: right; font-size: 10px; }
+  .lb-header {
+    display: grid;
+    grid-template-columns: 28px 1fr 48px 44px 40px;
+    gap: 6px;
+    padding: 6px 6px 4px;
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  /* ── VeriAgent ────────────────────────────── */
+  .registry-badge {
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(160,96,255,0.1);
+    border: 1px solid rgba(160,96,255,0.3);
+    color: var(--purple);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+  .veri-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .veri-stat-label {
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .veri-stat-value {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+  }
+  .audit-item {
+    padding: 9px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    margin-bottom: 4px;
+    animation: feed-enter 0.25s ease-out;
+  }
+  .audit-verdict {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .audit-verdict.approved { color: var(--green); }
+  .audit-verdict.flagged { color: var(--yellow); }
+  .audit-verdict.rejected { color: var(--red); }
+  .audit-action {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .audit-hash {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: var(--font-mono);
+    margin-bottom: 4px;
+  }
+  .audit-reason {
+    font-size: 10px;
+    color: var(--text2);
+    line-height: 1.4;
+  }
+  .trust-bar-wrap {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .trust-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--purple), var(--cyan));
+    transition: width 0.6s ease;
+  }
 </style>
 </head>
 <body>
@@ -730,7 +933,14 @@
   <header class="header">
     <div class="logo">
       <div class="logo-icon"></div>
-      <div class="logo-text"><span>SWARM</span> CONDUCTOR</div>
+      <div>
+        <div class="logo-text"><span>SWARM</span> CONDUCTOR</div>
+        <div class="product-badges">
+          <span class="product-badge conductor">Conductor</span>
+          <span class="product-badge arena">Arena</span>
+          <span class="product-badge veri">VeriAgent</span>
+        </div>
+      </div>
     </div>
 
     <div class="header-center">
@@ -868,35 +1078,139 @@
 
     </div>
 
-    <!-- RIGHT: Portfolio + Executions -->
+    <!-- RIGHT: Portfolio / Arena / VeriAgent tabs -->
     <div class="panel" style="display:flex; flex-direction:column;">
 
-      <!-- Portfolio -->
-      <div class="panel-header">
-        <span class="panel-title">Portfolio</span>
-        <span class="panel-badge" id="walletBadge">No wallet</span>
+      <!-- Tab bar -->
+      <div class="right-tabs">
+        <button class="right-tab active" id="tabBtnPortfolio" onclick="switchTab('Portfolio')">PORTFOLIO</button>
+        <button class="right-tab arena" id="tabBtnArena" onclick="switchTab('Arena')">⚔ ARENA</button>
+        <button class="right-tab veri" id="tabBtnVeri" onclick="switchTab('Veri')">🔍 VERIAGENT</button>
       </div>
 
-      <div class="portfolio-section">
-        <div class="portfolio-value" id="portfolioValue">$0.00</div>
-        <div class="portfolio-return" id="portfolioReturn">+0.00% today</div>
-      </div>
+      <!-- ── PORTFOLIO TAB ── -->
+      <div id="tabViewPortfolio" class="tab-view active">
 
-      <!-- Positions -->
-      <div style="padding: 8px 16px; flex-shrink:0; border-bottom: 1px solid var(--border);">
-        <div style="font-size:10px; color:var(--text3); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;">Positions</div>
-        <div id="positionList">
-          <div class="empty" style="padding:16px 0;">No positions</div>
+        <div class="panel-header">
+          <span class="panel-title">Portfolio</span>
+          <span class="panel-badge" id="walletBadge">No wallet</span>
         </div>
+
+        <div class="portfolio-section">
+          <div class="portfolio-value" id="portfolioValue">$0.00</div>
+          <div class="portfolio-return" id="portfolioReturn">+0.00% today</div>
+        </div>
+
+        <!-- Positions -->
+        <div style="padding: 8px 16px; flex-shrink:0; border-bottom: 1px solid var(--border);">
+          <div style="font-size:10px; color:var(--text3); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;">Positions</div>
+          <div id="positionList">
+            <div class="empty" style="padding:12px 0;">No positions</div>
+          </div>
+        </div>
+
+        <!-- Executions -->
+        <div class="panel-header" style="border-top: none;">
+          <span class="panel-title">Executions</span>
+          <span class="panel-badge" id="execCount">0</span>
+        </div>
+        <div class="panel-body" id="execList">
+          <div class="empty">No executions yet</div>
+        </div>
+
       </div>
 
-      <!-- Executions -->
-      <div class="panel-header" style="border-top: none;">
-        <span class="panel-title">Executions</span>
-        <span class="panel-badge" id="execCount">0</span>
+      <!-- ── ARENA TAB ── -->
+      <div id="tabViewArena" class="tab-view">
+
+        <div class="panel-header">
+          <span class="panel-title" style="color:var(--yellow);">Swarm Arena</span>
+          <span class="panel-badge" id="arenaRankBadge">RANK —</span>
+        </div>
+
+        <!-- My swarm stats -->
+        <div style="padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink:0;">
+          <div class="arena-my-stats">
+            <div>
+              <div class="arena-stat-label">RANK</div>
+              <div class="arena-stat-value" id="myRank" style="color:var(--yellow);">—</div>
+            </div>
+            <div>
+              <div class="arena-stat-label">SCORE</div>
+              <div class="arena-stat-value" id="myScore">—</div>
+            </div>
+            <div>
+              <div class="arena-stat-label">WIN %</div>
+              <div class="arena-stat-value" id="myWinRate" style="color:var(--green);">—</div>
+            </div>
+            <div>
+              <div class="arena-stat-label">FOLLOWERS</div>
+              <div class="arena-stat-value" id="myFollowers" style="color:var(--blue);">0</div>
+            </div>
+          </div>
+          <button class="copy-btn" id="copyBtn" onclick="toggleCopySwarm()">COPY THIS SWARM</button>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="panel-header" style="border-top:none;">
+          <span class="panel-title">Live Leaderboard</span>
+          <span class="panel-badge">Top 10</span>
+        </div>
+        <div class="panel-body" id="arenaLeaderboard">
+          <div class="lb-header">
+            <span></span>
+            <span>Swarm</span>
+            <span style="text-align:right">Score</span>
+            <span style="text-align:right">Win%</span>
+            <span style="text-align:right">Fans</span>
+          </div>
+          <div class="empty">Loading arena...</div>
+        </div>
+
       </div>
-      <div class="panel-body" id="execList">
-        <div class="empty">No executions yet</div>
+
+      <!-- ── VERIAGENT TAB ── -->
+      <div id="tabViewVeri" class="tab-view">
+
+        <div class="panel-header">
+          <span class="panel-title" style="color:var(--purple);">VeriAgent Auditor</span>
+          <span class="panel-badge" id="trustBadge">TRUST —</span>
+        </div>
+
+        <!-- Registry + stats -->
+        <div style="padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink:0;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span class="registry-badge">ON-CHAIN VERIFIED</span>
+            <span style="font-size:10px; color:var(--text3); font-family:var(--font-mono);" id="registryDid">DID: —</span>
+          </div>
+          <div class="veri-stats-grid">
+            <div>
+              <div class="veri-stat-label">TOTAL AUDITS</div>
+              <div class="veri-stat-value" id="totalAudits">0</div>
+            </div>
+            <div>
+              <div class="veri-stat-label">APPROVED</div>
+              <div class="veri-stat-value" id="auditsPassed" style="color:var(--green);">0</div>
+            </div>
+            <div>
+              <div class="veri-stat-label">TRUST SCORE</div>
+              <div class="veri-stat-value" id="trustScoreVal" style="color:var(--purple);">—</div>
+            </div>
+          </div>
+          <div class="trust-bar-wrap">
+            <div class="trust-bar-fill" id="trustBarFill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Audit log -->
+        <div class="panel-header" style="border-top:none;">
+          <span class="panel-title">Audit Log</span>
+          <span class="panel-badge" id="auditCount">0</span>
+        </div>
+        <div class="panel-body" id="auditLogList">
+          <div class="empty">Awaiting decisions to audit…</div>
+        </div>
+
       </div>
 
     </div>
@@ -916,6 +1230,23 @@ const state = {
   agents: {},
   epoch: 0,
   trades: 0,
+  // Arena
+  arena: {
+    myRank: null,
+    myScore: 0,
+    myWinRate: 0,
+    myFollowers: 0,
+    isCopying: false,
+    leaderboard: [],
+  },
+  // VeriAgent
+  veriagent: {
+    registryId: null,
+    trustScore: 0,
+    totalAudits: 0,
+    passedAudits: 0,
+    auditLog: [],
+  },
 };
 
 // ─── WebSocket ────────────────────────────────────────────────────────────────
@@ -1026,6 +1357,40 @@ function handleMessage(channel, payload) {
       document.getElementById('statusText').textContent = 'LIVE';
       addActivity('halt', 'success', '✅ Swarm Resumed', '');
       break;
+
+    // ── Arena channels ──────────────────────────────────────────
+    case 'arena:tick':
+      if (payload.leaderboard) state.arena.leaderboard = payload.leaderboard;
+      renderArena();
+      break;
+    case 'arena:rank:update':
+      state.arena.myRank = payload.rank;
+      state.arena.myScore = payload.score ?? state.arena.myScore;
+      state.arena.myWinRate = payload.winRate ?? state.arena.myWinRate;
+      state.arena.myFollowers = payload.followers ?? state.arena.myFollowers;
+      renderArena();
+      addActivity('arena', 'success', `Arena Rank: #${payload.rank}`, `Score ${(payload.score||0).toFixed(0)} • ${(payload.followers||0)} followers`);
+      break;
+
+    // ── VeriAgent channels ──────────────────────────────────────
+    case 'verifier:audit:complete': {
+      state.veriagent.totalAudits++;
+      if (payload.verdict === 'approved') state.veriagent.passedAudits++;
+      if (payload.trustScore != null) state.veriagent.trustScore = payload.trustScore;
+      state.veriagent.auditLog.unshift(payload);
+      state.veriagent.auditLog = state.veriagent.auditLog.slice(0, 50);
+      renderVeriAgent();
+      const sev = payload.verdict === 'approved' ? 'success' : payload.verdict === 'flagged' ? 'warning' : 'error';
+      addActivity('veriagent', sev,
+        `Audit ${payload.verdict?.toUpperCase()}: ${payload.action || 'trade'}`,
+        `Hash: ${(payload.decisionHash||'').slice(0,20)}…`);
+      break;
+    }
+    case 'registry:identity:registered':
+      state.veriagent.registryId = payload.did;
+      renderVeriAgent();
+      addActivity('veriagent', 'success', '🟣 Registry Identity Established', `DID: ${(payload.did||'').slice(0,24)}…`);
+      break;
   }
   state.epoch++;
   document.getElementById('epochBadge').textContent = `EPOCH ${state.epoch}`;
@@ -1038,6 +1403,8 @@ function applySnapshot(snap) {
   state.executions = snap.executions || [];
   state.agents = snap.agents || {};
   state.isHalted = snap.isHalted || false;
+  if (snap.arena) Object.assign(state.arena, snap.arena);
+  if (snap.veriagent) Object.assign(state.veriagent, snap.veriagent);
   renderAll();
 }
 
@@ -1050,6 +1417,8 @@ function renderAll() {
   renderProposals();
   renderExecutions();
   renderAgents();
+  renderArena();
+  renderVeriAgent();
 }
 
 function renderStats() {
@@ -1253,7 +1622,86 @@ function renderActivity() {
   `).join('');
 }
 
+// ─── Tab switching ────────────────────────────────────────────────────────────
+function switchTab(name) {
+  ['Portfolio', 'Arena', 'Veri'].forEach(t => {
+    document.getElementById('tabView' + t).classList.remove('active');
+    document.getElementById('tabBtn' + t).classList.remove('active');
+  });
+  document.getElementById('tabView' + name).classList.add('active');
+  document.getElementById('tabBtn' + name).classList.add('active');
+}
+
+function toggleCopySwarm() {
+  state.arena.isCopying = !state.arena.isCopying;
+  const btn = document.getElementById('copyBtn');
+  btn.className = 'copy-btn' + (state.arena.isCopying ? ' active' : '');
+  btn.textContent = state.arena.isCopying ? '✓ COPYING SWARM (LIVE)' : 'COPY THIS SWARM';
+  addActivity('arena', state.arena.isCopying ? 'success' : 'info',
+    state.arena.isCopying ? '🔄 Copy-Trading ENABLED' : '⏹ Copy-Trading disabled', '');
+}
+
+// ─── Arena renderer ───────────────────────────────────────────────────────────
+function renderArena() {
+  const a = state.arena;
+  const rankTxt = a.myRank ? '#' + a.myRank : '—';
+  document.getElementById('myRank').textContent = rankTxt;
+  document.getElementById('arenaRankBadge').textContent = 'RANK ' + rankTxt;
+  document.getElementById('myScore').textContent = a.myScore ? a.myScore.toFixed(0) : '—';
+  document.getElementById('myWinRate').textContent = a.myWinRate ? (a.myWinRate * 100).toFixed(1) + '%' : '—';
+  document.getElementById('myFollowers').textContent = a.myFollowers || 0;
+
+  const el = document.getElementById('arenaLeaderboard');
+  if (!a.leaderboard || !a.leaderboard.length) {
+    el.innerHTML = '<div class="lb-header"><span></span><span>Swarm</span><span style="text-align:right">Score</span><span style="text-align:right">Win%</span><span style="text-align:right">Fans</span></div><div class="empty">Waiting for arena data…</div>';
+    return;
+  }
+  el.innerHTML = '<div class="lb-header"><span></span><span>Swarm</span><span style="text-align:right">Score</span><span style="text-align:right">Win%</span><span style="text-align:right">Fans</span></div>' +
+    a.leaderboard.map((entry, i) => `
+    <div class="leaderboard-row ${entry.isMe ? 'is-me' : ''}">
+      <div class="lb-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i + 1)}</div>
+      <div class="lb-name">${escHtml(entry.name)}</div>
+      <div class="lb-score">${(entry.score || 0).toFixed(0)}</div>
+      <div class="lb-winrate">${((entry.winRate || 0) * 100).toFixed(1)}%</div>
+      <div class="lb-followers">${entry.followers || 0}👥</div>
+    </div>
+  `).join('');
+}
+
+// ─── VeriAgent renderer ───────────────────────────────────────────────────────
+function renderVeriAgent() {
+  const v = state.veriagent;
+  document.getElementById('totalAudits').textContent = v.totalAudits;
+  document.getElementById('auditsPassed').textContent = v.passedAudits;
+  document.getElementById('auditCount').textContent = v.totalAudits;
+  const score = v.trustScore || 0;
+  document.getElementById('trustScoreVal').textContent = score ? score.toFixed(0) : '—';
+  document.getElementById('trustBadge').textContent = score ? `TRUST: ${score.toFixed(0)}` : 'TRUST —';
+  document.getElementById('trustBarFill').style.width = score + '%';
+  if (v.registryId) {
+    document.getElementById('registryDid').textContent = 'DID: ' + v.registryId.slice(0, 22) + '…';
+  }
+
+  const el = document.getElementById('auditLogList');
+  if (!v.auditLog || !v.auditLog.length) {
+    el.innerHTML = '<div class="empty">Awaiting decisions to audit…</div>';
+    return;
+  }
+  el.innerHTML = v.auditLog.slice(0, 20).map(a => `
+    <div class="audit-item">
+      <div class="audit-verdict ${a.verdict}">${a.verdict === 'approved' ? '✅' : a.verdict === 'flagged' ? '⚠️' : '❌'} ${(a.verdict || 'unknown').toUpperCase()}</div>
+      <div class="audit-action">${escHtml(a.action || 'Unknown action').replace(/_/g, ' ')}</div>
+      <div class="audit-hash">${escHtml((a.decisionHash || '').slice(0, 28))}…</div>
+      <div class="audit-reason">${escHtml((a.reasoning || '').slice(0, 100))}${(a.reasoning||'').length > 100 ? '…' : ''}</div>
+    </div>
+  `).join('');
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function priorityColor(p) {
   return { critical: 'var(--red)', high: 'var(--yellow)', medium: 'var(--blue)', low: 'var(--text3)' }[p] || 'var(--text3)';
 }
@@ -1296,6 +1744,38 @@ function runDemo() {
     'risk-demo': { agentId: 'risk-demo', role: 'risk-assessor', status: 'idle' },
     'exec-demo': { agentId: 'exec-demo', role: 'executor', status: 'idle' },
     'reb-demo': { agentId: 'reb-demo', role: 'rebalancer', status: 'idle' },
+  };
+
+  // Arena demo seed
+  state.arena = {
+    myRank: 1,
+    myScore: 847,
+    myWinRate: 0.68,
+    myFollowers: 124,
+    isCopying: false,
+    leaderboard: [
+      { name: 'SwarmXD-Demo', score: 847, winRate: 0.68, followers: 124, isMe: true },
+      { name: 'AlphaHunter-7', score: 721, winRate: 0.62, followers: 89 },
+      { name: 'SolQuant-III', score: 698, winRate: 0.59, followers: 67 },
+      { name: 'DeFiOracle-9', score: 634, winRate: 0.55, followers: 45 },
+      { name: 'JupSwarm-X', score: 612, winRate: 0.53, followers: 38 },
+      { name: 'Meridian-AI', score: 580, winRate: 0.51, followers: 29 },
+      { name: 'VaultBot-2', score: 541, winRate: 0.49, followers: 22 },
+    ],
+  };
+
+  // VeriAgent demo seed
+  const demoHash = () => '0x' + Math.random().toString(36).slice(2, 18) + Math.random().toString(36).slice(2, 6);
+  state.veriagent = {
+    registryId: 'did:solana:SwrmXD' + Math.random().toString(36).slice(2, 10).toUpperCase(),
+    trustScore: 94,
+    totalAudits: 12,
+    passedAudits: 11,
+    auditLog: [
+      { verdict: 'approved', action: 'rebalance_liquidity', decisionHash: demoHash(), reasoning: 'Strategy alignment 94%. No front-running patterns. Risk within configured bounds. Execution path optimal.', timestamp: new Date().toISOString() },
+      { verdict: 'approved', action: 'add_liquidity', decisionHash: demoHash(), reasoning: 'APY capture aligns with declared strategy. Position sizing within 20% max limit. Slippage within bounds.', timestamp: new Date().toISOString() },
+      { verdict: 'flagged', action: 'harvest_rewards', decisionHash: demoHash(), reasoning: 'Gas cost exceeds expected yield by 8%. Approved with caution flag — marginal profitability.', timestamp: new Date().toISOString() },
+    ],
   };
 
   document.getElementById('connIndicator').textContent = '● DEMO MODE';
@@ -1391,6 +1871,48 @@ function runDemo() {
               renderExecutions();
               setAgentStatus('executor', 'idle');
               addActivity('execution', 'success', `✅ ${prop.action.type} confirmed`, '');
+
+              // VeriAgent: audit the confirmed trade
+              setTimeout(() => {
+                const verdicts = ['approved', 'approved', 'approved', 'flagged'];
+                const verdict = verdicts[Math.floor(Math.random() * verdicts.length)];
+                state.veriagent.totalAudits++;
+                if (verdict === 'approved') state.veriagent.passedAudits++;
+                state.veriagent.trustScore = Math.min(100, Math.max(60,
+                  state.veriagent.passedAudits / state.veriagent.totalAudits * 100));
+                state.veriagent.auditLog.unshift({
+                  verdict,
+                  action: prop.action.type,
+                  decisionHash: '0x' + Math.random().toString(36).slice(2,18),
+                  reasoning: verdict === 'approved'
+                    ? 'Strategy alignment confirmed. Risk parameters within bounds. No anomalous patterns detected.'
+                    : 'Minor deviation: gas cost vs yield margin is borderline. Flagged for review.',
+                  timestamp: new Date().toISOString(),
+                });
+                state.veriagent.auditLog = state.veriagent.auditLog.slice(0, 50);
+                renderVeriAgent();
+                addActivity('veriagent', verdict === 'approved' ? 'success' : 'warning',
+                  `VeriAgent: ${verdict.toUpperCase()}`, `${prop.action.type.replace(/_/g,' ')}`);
+              }, 800);
+
+              // Arena: update score after confirmed trade
+              setTimeout(() => {
+                const delta = passed ? (Math.random() * 8 + 2) : -(Math.random() * 5);
+                state.arena.myScore = Math.max(0, state.arena.myScore + delta);
+                state.arena.myWinRate = state.veriagent.totalAudits > 0
+                  ? state.veriagent.passedAudits / state.veriagent.totalAudits
+                  : state.arena.myWinRate;
+                // Drift leaderboard
+                state.arena.leaderboard[0].score = state.arena.myScore;
+                state.arena.leaderboard.sort((a, b) => b.score - a.score);
+                state.arena.myRank = state.arena.leaderboard.findIndex(e => e.isMe) + 1;
+                // Occasionally gain a follower
+                if (Math.random() > 0.7) state.arena.myFollowers++;
+                state.arena.leaderboard.forEach((e, i) => {
+                  if (!e.isMe) e.score += (Math.random() - 0.48) * 5;
+                });
+                renderArena();
+              }, 1200);
             }, 2500);
           }
         }

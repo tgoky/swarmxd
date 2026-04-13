@@ -1,7 +1,7 @@
 version: "3.9"
 
-# ─── Swarm Conductor — Local Stack ──────────────────────────────────────────────
-# Starts: Redis, API server, Conductor + all agents
+# ─── Swarm Conductor + Arena + VeriAgent — Local Stack ──────────────────────────
+# Starts: Redis, API server, Conductor + all agents, Arena scorer, VeriAgent
 #
 # Usage:
 #   docker compose up -d          # start everything
@@ -91,6 +91,44 @@ services:
         condition: service_healthy
     volumes:
       - conductor-logs:/app/logs
+
+  # ── Arena Scorer ────────────────────────────────────────────────────────────
+
+  arena:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: conductor
+    restart: unless-stopped
+    command: ["tsx", "packages/arena/src/arena-scorer.ts"]
+    environment:
+      <<: *common-env
+      ARENA_TICK_MS: ${ARENA_TICK_MS:-10000}
+      SWARM_ID: ${SWARM_ID:-local-swarm}
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ── VeriAgent ───────────────────────────────────────────────────────────────
+
+  verifier:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: conductor
+    restart: unless-stopped
+    command: ["tsx", "packages/veriagent/src/verifier.agent.ts"]
+    environment:
+      <<: *common-env
+      WALLET_PRIVATE_KEY: ${WALLET_PRIVATE_KEY:-}
+      WALLET_PUBLIC_KEY: ${WALLET_PUBLIC_KEY:-}
+      SWARM_MEMORY_PROGRAM_ID: ${SWARM_MEMORY_PROGRAM_ID:-}
+      DRY_RUN: ${DRY_RUN:-true}
+      SWARM_ID: ${SWARM_ID:-local-swarm}
+      LLM_MODEL: ${LLM_MODEL:-claude-haiku-4-5-20251001}
+    depends_on:
+      redis:
+        condition: service_healthy
 
   # ── Dashboard (static file server) ─────────────────────────────────────────
 
