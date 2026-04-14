@@ -28,7 +28,12 @@ import type { AgentDependencies } from "@swarm/shared";
 
 // ─── Env validation ───────────────────────────────────────────────────────────
 
-const REQUIRED_ENV = ["ANTHROPIC_API_KEY", "SOLANA_RPC_URL", "REDIS_URL"];
+const REQUIRED_ENV = ["SOLANA_RPC_URL", "REDIS_URL"];
+// LLM key — accept either OpenRouter or direct Anthropic
+if (!process.env["OPENROUTER_API_KEY"] && !process.env["ANTHROPIC_API_KEY"]) {
+  console.error("❌ Missing LLM key: set OPENROUTER_API_KEY (recommended) or ANTHROPIC_API_KEY");
+  process.exit(1);
+}
 
 for (const key of REQUIRED_ENV) {
   if (!process.env[key]) {
@@ -106,7 +111,7 @@ async function main() {
       createLogger({ agentRole: "researcher", agentId })
     ),
     config,
-    anthropicApiKey: process.env["ANTHROPIC_API_KEY"]!,
+    llmApiKey: process.env["OPENROUTER_API_KEY"] ?? process.env["ANTHROPIC_API_KEY"]!,
   });
 
   // ── Instantiate agents ────────────────────────────────────────────────────

@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@swarm/shared": "*"
+    "@swarm/shared": "*",
+    "openai": "^4.52.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
