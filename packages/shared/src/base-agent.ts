@@ -5,7 +5,7 @@
  * Handles: lifecycle, heartbeat, bus subscription, error isolation.
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { nanoid } from "nanoid";
 import type { AgentRole, AgentMetadata, AgentProposal, AgentVote, Signal, SwarmConfig } from "./types.js";
 import { CHANNELS } from "./types.js";
@@ -15,7 +15,8 @@ import { createLogger, type Logger } from "./logger.js";
 export interface AgentDependencies {
   bus: MessageBus;
   config: SwarmConfig;
-  anthropicApiKey: string;
+  /** Accept either OPENROUTER_API_KEY or ANTHROPIC_API_KEY */
+  llmApiKey: string;
 }
 
 export abstract class BaseAgent {
@@ -24,7 +25,7 @@ export abstract class BaseAgent {
   protected readonly bus: MessageBus;
   protected readonly config: SwarmConfig;
   protected readonly logger: Logger;
-  protected readonly ai: Anthropic;
+  protected readonly ai: OpenAI;
   protected status: AgentMetadata["status"] = "idle" as const;
   private heartbeatInterval?: NodeJS.Timeout;
 
@@ -34,7 +35,14 @@ export abstract class BaseAgent {
     this.bus = deps.bus;
     this.config = deps.config;
     this.logger = createLogger({ agentRole: role, agentId: this.id });
-    this.ai = new Anthropic({ apiKey: deps.anthropicApiKey });
+    this.ai = new OpenAI({
+      baseURL: process.env["LLM_BASE_URL"] ?? "https://openrouter.ai/api/v1",
+      apiKey: deps.llmApiKey,
+      defaultHeaders: {
+        "HTTP-Referer": "https://swarmconductor.xyz",
+        "X-Title": "Swarm Conductor",
+      },
+    });
   }
 
   async start(): Promise<void> {
@@ -111,23 +119,29 @@ export abstract class BaseAgent {
     userPrompt: string,
     maxTokens = 2048
   ): Promise<string> {
-    const response = await this.ai.messages.create({
-      model: process.env["ANTHROPIC_MODEL"] ?? "claude-opus-4-5",
+    const model =
+      process.env["LLM_MODEL"] ??
+      "anthropic/claude-sonnet-4";   // OpenRouter model ID
+
+    const response = await this.ai.chat.completions.create({
+      model,
       max_tokens: maxTokens,
-      system: `You are the ${this.role} agent in a decentralized DeFi trading swarm called Swarm Conductor.
+      messages: [
+        {
+          role: "system",
+          content: `You are the ${this.role} agent in a decentralized DeFi trading swarm called Swarm Conductor.
 Your role: ${this.getRoleDescription()}
 Current time: ${new Date().toISOString()}
 Always respond with structured, actionable analysis. Be precise about numbers and risk.
 ${systemPrompt}`,
-      messages: [{ role: "user", content: userPrompt }],
+        },
+        { role: "user", content: userPrompt },
+      ],
     });
 
-    const textBlock = response.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
-      throw new Error("AI returned no text content");
-    }
-
-    return textBlock.text;
+    const text = response.choices[0]?.message?.content;
+    if (!text) throw new Error("LLM returned no content");
+    return text;
   }
 
   protected abstract getRoleDescription(): string;

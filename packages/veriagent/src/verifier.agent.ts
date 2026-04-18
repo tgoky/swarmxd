@@ -14,7 +14,7 @@
  */
 
 import crypto from "crypto";
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { MessageBus, Logger } from "@swarm/shared";
 import { RegistryClient } from "./registry-client.js";
 
@@ -66,7 +66,7 @@ export class VerifierAgent {
   private bus: MessageBus;
   private log: Logger;
   private registry: RegistryClient;
-  private client: Anthropic;
+  private client: OpenAI;
   private trustScore = 80;
   private swarmId: string;
   private auditsCompleted = 0;
@@ -76,7 +76,14 @@ export class VerifierAgent {
     this.bus = bus;
     this.log = log;
     this.registry = registry;
-    this.client = new Anthropic({ apiKey: process.env["ANTHROPIC_API_KEY"] });
+    this.client = new OpenAI({
+      baseURL: process.env["LLM_BASE_URL"] ?? "https://openrouter.ai/api/v1",
+      apiKey: process.env["OPENROUTER_API_KEY"] ?? process.env["ANTHROPIC_API_KEY"] ?? "",
+      defaultHeaders: {
+        "HTTP-Referer": "https://swarmconductor.xyz",
+        "X-Title": "Swarm Conductor — VeriAgent",
+      },
+    });
     this.swarmId = process.env["SWARM_ID"] ?? "local-swarm";
   }
 
@@ -162,14 +169,16 @@ Vote breakdown: ${JSON.stringify(consensus.votes ?? [])}
 Weighted approval score: ${(consensus.weightedScore * 100).toFixed(1)}%
 `.trim();
 
-    const message = await this.client.messages.create({
-      model: process.env["LLM_MODEL"] ?? "claude-haiku-4-5-20251001",
+    const response = await this.client.chat.completions.create({
+      model: process.env["LLM_MODEL"] ?? "anthropic/claude-haiku-4",
       max_tokens: 256,
-      system: STRATEGY_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userPrompt }],
+      messages: [
+        { role: "system", content: STRATEGY_SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
     });
 
-    const text = message.content[0]?.type === "text" ? message.content[0].text : "";
+    const text = response.choices[0]?.message?.content ?? "";
 
     try {
       const parsed = JSON.parse(text) as {
