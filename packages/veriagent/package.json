@@ -1,5 +1,5 @@
 {
-"@swarm/shared": "*",
+  "name": "@swarm/veriagent",
   "version": "1.0.0",
   "private": true,
   "description": "VeriAgent — on-chain explainable AI auditor and Solana Agent Registry trust layer",
@@ -8,8 +8,8 @@
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit"
   },
-   "dependencies": {
-     "@swarm/shared": "*",
+  "dependencies": {
+    "@swarm/shared": "workspace:*",
     "openai": "^4.52.0"
   },
   "devDependencies": {
