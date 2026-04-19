@@ -9,7 +9,12 @@
   },
   "dependencies": {
     "@swarm/shared": "workspace:*",
+    "@swarm/agent-researcher": "workspace:*",
+    "@swarm/agent-risk-assessor": "workspace:*",
+    "@swarm/agent-executor": "workspace:*",
+    "@swarm/agent-rebalancer": "workspace:*",
     "@solana/web3.js": "^1.91.0",
+    "dotenv": "^16.0.0",
     "nanoid": "^5.0.0"
   }
 }

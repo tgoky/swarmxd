@@ -88,7 +88,8 @@ export class SwarmConductor {
   async start(): Promise<void> {
     this.logger.info("Swarm Conductor starting up");
 
-    await this.bus.connect();
+    // bus may already be connected if bootstrap connected it; connect is idempotent
+    try { await this.bus.connect(); } catch { /* already connected */ }
     await this.onChainMemory.initialize();
     await this.portfolioMonitor.start(this.state.portfolio.walletAddress);
     await this.signalDetector.start();
@@ -125,9 +126,10 @@ export class SwarmConductor {
     this.state.epoch++;
     this.logger.debug({ epoch: this.state.epoch }, "Conductor tick");
 
-    // 1. Refresh portfolio state
+    // 1. Refresh portfolio state and broadcast to dashboard via Redis
     const updatedPortfolio = await this.portfolioMonitor.getPortfolio();
     this.state.portfolio = updatedPortfolio;
+    await this.bus.publish(CHANNELS.PORTFOLIO_UPDATE, updatedPortfolio);
 
     // 2. Check stop-loss circuit breaker
     const stopLossBreach = this.riskGuard.checkStopLoss(updatedPortfolio);
