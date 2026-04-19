@@ -1149,6 +1149,66 @@ body::after {
 }
 .modal-explorer-link:hover { text-decoration: underline; }
 
+/* ── Vault Balance Card ──────────────────────────────────────────────────────── */
+.vault-balance-card {
+  margin: 10px 14px;
+  padding: 12px 14px;
+  background: rgba(0, 212, 255, 0.04);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.vault-balance-label {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 4px;
+}
+.vault-balance-amount {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cyan);
+  line-height: 1;
+}
+.vault-balance-sub {
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+.vault-deposit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vault-deposit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text2);
+  text-decoration: none;
+  padding: 3px 0;
+  border-top: 1px solid var(--border);
+  transition: color 0.12s;
+}
+.vault-deposit-row:hover { color: var(--cyan); }
+.vault-deposit-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+.vault-deposit-sig {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text3);
+}
+.vault-deposit-row:hover .vault-deposit-sig { color: var(--cyan); }
+
 /* ── Wallet Adapter modal overrides (match dark theme) ───────────────────────── */
 .wallet-adapter-modal-wrapper {
   background: var(--surface) !important;
