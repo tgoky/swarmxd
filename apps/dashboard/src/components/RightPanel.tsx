@@ -15,11 +15,14 @@ function PortfolioTab() {
   const portfolio = useSwarmStore((s) => s.portfolio);
   const executions = useSwarmStore((s) => s.executions);
   const pnlHistory = useSwarmStore((s) => s.pnlHistory);
+  const vaultBalance = useSwarmStore((s) => s.vaultBalance);
+  const vaultDeposits = useSwarmStore((s) => s.vaultDeposits);
   const { connected, publicKey } = useWallet();
   const [showDeposit, setShowDeposit] = useState(false);
 
   const daily = portfolio?.dailyReturnPct ?? 0;
   const walletAddr = publicKey?.toBase58();
+  const hasVaultFunds = vaultBalance > 0;
 
   return (
     <>
@@ -44,14 +47,47 @@ function PortfolioTab() {
         </div>
       )}
 
+      {/* Vault balance — shows deposits before the swarm starts trading */}
+      {hasVaultFunds && (
+        <div className="vault-balance-card">
+          <div className="vault-balance-label">Vault Balance (idle)</div>
+          <div className="vault-balance-amount">{vaultBalance.toFixed(4)} SOL</div>
+          <div className="vault-balance-sub">
+            Waiting to be deployed by the swarm · {vaultDeposits.length} deposit{vaultDeposits.length !== 1 ? "s" : ""}
+          </div>
+          <div className="vault-deposit-list">
+            {vaultDeposits.slice(0, 5).map((d) => (
+              <a
+                key={d.txSignature}
+                className="vault-deposit-row"
+                href={`https://explorer.solana.com/tx/${d.txSignature}?cluster=testnet`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className="vault-deposit-dot" />
+                <span>{d.amountSol.toFixed(4)} SOL</span>
+                <span className="vault-deposit-sig">{d.txSignature.slice(0, 12)}… ↗</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="portfolio-section">
+        <div style={{ fontSize: 10, color: "var(--text3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
+          Swarm-Managed Positions
+        </div>
         <div className="portfolio-value">
           {portfolio
             ? "$" + portfolio.totalValueUsd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
             : "$0.00"}
         </div>
         <div className={`portfolio-return ${daily >= 0 ? "positive" : "negative"}`}>
-          {(daily >= 0 ? "+" : "") + (daily * 100).toFixed(2)}% today
+          {portfolio
+            ? (daily >= 0 ? "+" : "") + (daily * 100).toFixed(2) + "% today"
+            : hasVaultFunds
+            ? "Awaiting first trade…"
+            : "Run pnpm start:demo to simulate"}
         </div>
       </div>
 

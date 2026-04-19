@@ -91,6 +91,10 @@ export interface SwarmStore {
   proposals: ProposalState[];
   executions: ExecutionState[];
 
+  // Vault deposits (user-initiated on-chain deposits)
+  vaultBalance: number;        // total SOL deposited
+  vaultDeposits: VaultDeposit[];
+
   // Chart data
   pnlHistory: { timestamp: number; valueUsd: number }[];
 
@@ -117,6 +121,13 @@ export interface ActivityItem {
   title: string;
   detail?: string;
   severity: "info" | "success" | "warning" | "error";
+}
+
+export interface VaultDeposit {
+  walletAddress: string;
+  amountSol: number;
+  txSignature: string;
+  timestamp: string;
 }
 
 // ── Arena ─────────────────────────────────────────────────────────────────────
@@ -168,6 +179,8 @@ export const useSwarmStore = create<SwarmStore>((set, get) => ({
   signals: [],
   proposals: [],
   executions: [],
+  vaultBalance: 0,
+  vaultDeposits: [],
   pnlHistory: [],
   activityFeed: [],
   arena: {
@@ -379,6 +392,24 @@ export const useSwarmStore = create<SwarmStore>((set, get) => ({
           title: `Audit ${audit.verdict.toUpperCase()}: ${audit.action}`,
           detail: `Hash: ${audit.decisionHash.slice(0, 20)}…`,
           severity: audit.verdict === "approved" ? "success" : audit.verdict === "flagged" ? "warning" : "error",
+        });
+        break;
+      }
+
+      case "swarm:deposit:confirmed": {
+        const dep = p as VaultDeposit;
+        set((s) => ({
+          vaultBalance: s.vaultBalance + dep.amountSol,
+          vaultDeposits: [
+            { ...dep, timestamp: dep.timestamp ?? new Date().toISOString() },
+            ...s.vaultDeposits,
+          ].slice(0, 50),
+        }));
+        addActivity({
+          type: "execution",
+          title: `Deposit received: ${dep.amountSol} SOL`,
+          detail: `From ${dep.walletAddress.slice(0, 8)}… · Tx: ${dep.txSignature.slice(0, 16)}…`,
+          severity: "success",
         });
         break;
       }

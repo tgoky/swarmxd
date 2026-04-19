@@ -1,22 +1,25 @@
 /**
- * PortfolioMonitor — Real-time position tracking.
+ * PortfolioMonitor — Real-time position and balance tracking.
  *
- * Uses Helius enhanced RPC for:
- * - Token account balances
- * - LP position values (via program account parsing)
- * - Pending rewards
- * - PnL tracking
+ * Reads native SOL balance + token accounts from the executor wallet.
+ * Fetches SOL/USD price from Jupiter price API (no auth needed).
+ * Called by the conductor on every tick; result is published to Redis.
  */
 
-import { Connection, PublicKey } from "@solana/web3.js";
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import type { Portfolio, Position, SwarmConfig } from "@swarm/shared";
 import type { Logger } from "@swarm/shared";
+
+const SOL_MINT = "So11111111111111111111111111111111111111112";
+const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
 export class PortfolioMonitor {
   private connection: Connection;
   private walletAddress?: string;
   private cachedPortfolio?: Portfolio;
   private refreshInterval?: NodeJS.Timeout;
+  private cachedSolPrice = 0;
+  private lastPriceFetch = 0;
 
   constructor(
     private readonly config: SwarmConfig,
@@ -32,9 +35,10 @@ export class PortfolioMonitor {
     this.walletAddress = walletAddress;
     await this.refresh();
 
-    // Refresh every 20s
     this.refreshInterval = setInterval(() => {
-      this.refresh().catch((e) => this.logger.error({ err: e }, "Portfolio refresh error"));
+      this.refresh().catch((e) =>
+        this.logger.error({ err: e }, "Portfolio refresh error")
+      );
     }, 20_000);
   }
 
@@ -43,10 +47,40 @@ export class PortfolioMonitor {
   }
 
   async getPortfolio(): Promise<Portfolio> {
-    if (!this.cachedPortfolio) {
-      await this.refresh();
-    }
+    if (!this.cachedPortfolio) await this.refresh();
     return this.cachedPortfolio!;
+  }
+
+  // ── Private ────────────────────────────────────────────────────────────────
+
+  private async fetchSolPrice(): Promise<number> {
+    // Cache price for 60s to avoid hammering the API
+    if (this.cachedSolPrice > 0 && Date.now() - this.lastPriceFetch < 60_000) {
+      return this.cachedSolPrice;
+    }
+
+    try {
+      const res = await fetch(
+        `https://price.jup.ag/v6/price?ids=${SOL_MINT}`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+      if (!res.ok) throw new Error(`Jupiter price API ${res.status}`);
+
+      const json = await res.json() as {
+        data: Record<string, { price: number }>;
+      };
+
+      const price = json.data[SOL_MINT]?.price ?? 0;
+      if (price > 0) {
+        this.cachedSolPrice = price;
+        this.lastPriceFetch = Date.now();
+      }
+      return price;
+    } catch (err) {
+      this.logger.warn({ err }, "SOL price fetch failed — using cached value");
+      // Fall back to a rough estimate if cache is empty
+      return this.cachedSolPrice || 150;
+    }
   }
 
   private async refresh(): Promise<void> {
@@ -54,32 +88,59 @@ export class PortfolioMonitor {
 
     try {
       const wallet = new PublicKey(this.walletAddress);
+      const solPrice = await this.fetchSolPrice();
 
-      // Fetch all token accounts
-      const tokenAccounts = await this.connection.getParsedTokenAccountsByOwner(wallet, {
-        programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-      });
+      // Native SOL balance
+      const lamports = await this.connection.getBalance(wallet);
+      const solBalance = lamports / LAMPORTS_PER_SOL;
+      const solValueUsd = solBalance * solPrice;
 
-      // In production: parse LP positions from Raydium/Orca program accounts
-      // For now, build portfolio from token balances
-      const positions: Position[] = [];
-      let totalValueUsd = 0;
+      // Token accounts (USDC, etc.)
       let idleUsdc = 0;
+      const positions: Position[] = [];
 
-      for (const account of tokenAccounts.value) {
-        const info = account.account.data.parsed?.info;
-        if (!info || info.tokenAmount.uiAmount === 0) continue;
+      try {
+        const tokenAccounts = await this.connection.getParsedTokenAccountsByOwner(
+          wallet,
+          { programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") }
+        );
 
-        const mint = info.mint as string;
-        const amount = info.tokenAmount.uiAmount as number;
+        for (const account of tokenAccounts.value) {
+          const info = account.account.data.parsed?.info as {
+            mint: string;
+            tokenAmount: { uiAmount: number };
+          } | undefined;
 
-        // USDC detection
-        if (mint === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v") {
-          idleUsdc += amount;
-          totalValueUsd += amount;
+          if (!info || info.tokenAmount.uiAmount === 0) continue;
+
+          if (info.mint === USDC_MINT) {
+            idleUsdc += info.tokenAmount.uiAmount;
+          }
         }
+      } catch {
+        // Token account fetch is non-critical — continue with SOL balance only
+      }
 
-        // In production: fetch price from Pyth/Jupiter and build position
+      const totalValueUsd = solValueUsd + idleUsdc;
+
+      // Idle SOL shows as a native position so the dashboard has something to render
+      if (solBalance > 0.001) {
+        positions.push({
+          id: "native-sol",
+          protocol: "native",
+          poolAddress: this.walletAddress,
+          tokenA: "SOL",
+          tokenB: "",
+          amountA: solBalance,
+          amountB: 0,
+          valueUsd: solValueUsd,
+          entryValueUsd: this.cachedPortfolio?.positions.find((p) => p.id === "native-sol")?.entryValueUsd ?? solValueUsd,
+          pnlUsd: 0,
+          pnlPct: 0,
+          openedAt: new Date(),
+          apyAtEntry: 0,
+          currentApy: 0,
+        });
       }
 
       const portfolio: Portfolio = {
@@ -89,17 +150,25 @@ export class PortfolioMonitor {
         idleUsdc,
         lastUpdated: new Date(),
         allTimeReturnPct: this.cachedPortfolio?.allTimeReturnPct ?? 0,
-        dailyReturnPct: 0,
+        dailyReturnPct: this.cachedPortfolio
+          ? this.cachedPortfolio.totalValueUsd > 0
+            ? (totalValueUsd - this.cachedPortfolio.totalValueUsd) /
+              this.cachedPortfolio.totalValueUsd
+            : 0
+          : 0,
       };
 
-      // Calculate daily return
-      if (this.cachedPortfolio) {
-        portfolio.dailyReturnPct =
-          (totalValueUsd - this.cachedPortfolio.totalValueUsd) / this.cachedPortfolio.totalValueUsd;
-      }
-
       this.cachedPortfolio = portfolio;
-      this.logger.debug({ totalValueUsd, positionCount: positions.length }, "Portfolio refreshed");
+
+      this.logger.info(
+        {
+          solBalance: solBalance.toFixed(4),
+          solPrice: solPrice.toFixed(2),
+          totalValueUsd: totalValueUsd.toFixed(2),
+          idleUsdc: idleUsdc.toFixed(2),
+        },
+        "Portfolio refreshed"
+      );
     } catch (err) {
       this.logger.error({ err }, "Portfolio refresh failed");
     }
