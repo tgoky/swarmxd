@@ -875,3 +875,301 @@ body::after {
 }
 
 .tick-anim { animation: number-tick 0.3s ease-out; }
+
+/* ── Wallet Button ───────────────────────────────────────────────────────────── */
+.wallet-btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.wallet-btn:hover:not(:disabled) {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: rgba(0, 212, 255, 0.06);
+}
+.wallet-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.wallet-btn.connected {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--green-dim);
+}
+.wallet-btn.connected:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: var(--red-dim);
+}
+.wallet-btn.connected:hover::before {
+  content: "Disconnect · ";
+}
+
+/* ── Deposit Button ──────────────────────────────────────────────────────────── */
+.deposit-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 7px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--cyan);
+  background: rgba(0, 212, 255, 0.06);
+  color: var(--cyan);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.deposit-btn:hover {
+  background: rgba(0, 212, 255, 0.14);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.2);
+}
+
+/* ── Deposit Modal ───────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 8, 16, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  width: 360px;
+  max-width: 90vw;
+  box-shadow: 0 0 40px rgba(0, 212, 255, 0.12);
+  padding: 0;
+  overflow: hidden;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--cyan);
+}
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  transition: color 0.1s;
+}
+.modal-close:hover { color: var(--text); }
+
+.modal-field {
+  padding: 14px 18px 0;
+}
+.modal-label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 6px;
+}
+.modal-input {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.modal-input:focus { border-color: var(--cyan); }
+.modal-input:disabled { opacity: 0.5; }
+.modal-input[type=number]::-webkit-inner-spin-button,
+.modal-input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+.modal-balance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 5px;
+}
+.modal-max {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text2);
+  border-radius: 3px;
+  padding: 2px 6px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.modal-max:hover { color: var(--cyan); border-color: var(--cyan); }
+
+.modal-vault-addr {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text2);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 12px;
+  word-break: break-all;
+}
+
+.modal-note {
+  margin: 14px 18px 0;
+  font-size: 10px;
+  color: var(--text3);
+  line-height: 1.5;
+}
+.modal-warn {
+  margin: 14px 18px 0;
+  padding: 10px 12px;
+  background: var(--yellow-dim);
+  border: 1px solid rgba(255, 208, 96, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--yellow);
+}
+.modal-warn code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: rgba(255, 208, 96, 0.15);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+.modal-error {
+  margin: 10px 18px 0;
+  padding: 8px 12px;
+  background: var(--red-dim);
+  border: 1px solid rgba(255, 64, 96, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--red);
+}
+.modal-confirming {
+  margin: 10px 18px 0;
+  font-size: 11px;
+  color: var(--cyan);
+  text-align: center;
+  animation: analyzing-pulse 1.2s ease-in-out infinite;
+}
+
+.modal-btn-primary {
+  display: block;
+  width: calc(100% - 36px);
+  margin: 16px 18px 18px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 11px;
+  border-radius: 5px;
+  border: 1px solid var(--cyan);
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--cyan);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.modal-btn-primary:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.2);
+  box-shadow: 0 0 16px rgba(0, 212, 255, 0.25);
+}
+.modal-btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--border2);
+  color: var(--text3);
+  background: none;
+}
+
+.modal-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 18px 20px;
+  gap: 8px;
+}
+.modal-success-icon {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--green);
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  color: var(--green);
+  box-shadow: var(--glow-green);
+  margin-bottom: 4px;
+}
+.modal-success-text {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--green);
+}
+.modal-success-sub {
+  font-size: 11px;
+  color: var(--text2);
+}
+.modal-explorer-link {
+  font-size: 11px;
+  color: var(--cyan);
+  text-decoration: none;
+  margin-top: 4px;
+}
+.modal-explorer-link:hover { text-decoration: underline; }
+
+/* ── Wallet Adapter modal overrides (match dark theme) ───────────────────────── */
+.wallet-adapter-modal-wrapper {
+  background: var(--surface) !important;
+  border: 1px solid var(--border2) !important;
+  border-radius: 8px !important;
+}
+.wallet-adapter-modal-title {
+  font-family: var(--font-display) !important;
+  color: var(--text) !important;
+  font-size: 16px !important;
+}
+.wallet-adapter-button {
+  font-family: var(--font-mono) !important;
+  background: var(--surface2) !important;
+  border: 1px solid var(--border2) !important;
+  border-radius: 4px !important;
+  color: var(--text) !important;
+}
+.wallet-adapter-button:hover {
+  background: rgba(0, 212, 255, 0.08) !important;
+  border-color: var(--cyan) !important;
+}
+.wallet-adapter-modal-list li { padding: 4px 0 !important; }
+.wallet-adapter-modal-overlay { background: rgba(6, 8, 16, 0.8) !important; }
