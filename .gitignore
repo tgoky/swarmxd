@@ -1,9 +1,26 @@
+# Next.js
+.next/
+**/.next/
+
+# Node
 node_modules/
 .pnpm-store/
 .pnpm/
-.DS_Store
+
+# Env
 .env
-dist
-build
+.env.local
+.env.*.local
+
+# Turbo
 .turbo
-.next/        # ← Added this.next/
+
+# OS
+.DS_Store
+
+# Build
+dist/
+build/
+
+# Redis
+dump.rdb
