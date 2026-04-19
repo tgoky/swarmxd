@@ -73,7 +73,8 @@ export type DeFiProtocol =
   | "whirlpool"
   | "drift"
   | "mango"
-  | "kamino";
+  | "kamino"
+  | "native";
 
 // ─── Portfolio ───────────────────────────────────────────────────────────────
 
