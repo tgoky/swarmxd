@@ -1,6 +1,7 @@
 "use client";
 
 import { useSwarmStore } from "@/stores/swarm.store";
+import { WalletButton } from "./WalletButton";
 
 export function Header() {
   const connected = useSwarmStore((s) => s.connected);
@@ -28,6 +29,7 @@ export function Header() {
       </div>
 
       <div className="header-right">
+        <WalletButton />
         <div className={`conn-indicator${connected ? " connected" : ""}`}>
           {connected ? "● CONNECTED" : "● DISCONNECTED"}
         </div>

@@ -146,6 +146,23 @@ app.post("/api/v1/halt", requireAuth, async (_req, res) => {
   res.json({ success: true, message: "Halt signal sent" });
 });
 
+app.post("/api/v1/deposit", async (req, res) => {
+  const { walletAddress, amountSol, txSignature } = req.body as {
+    walletAddress?: string;
+    amountSol?: number;
+    txSignature?: string;
+  };
+
+  if (!walletAddress || !amountSol || !txSignature) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  const payload = { walletAddress, amountSol, txSignature, timestamp: new Date() };
+  broadcast("swarm:deposit:confirmed", payload);
+
+  return res.json({ success: true });
+});
+
 app.post("/api/v1/resume", requireAuth, async (_req, res) => {
   const pub = createClient({ url: process.env["REDIS_URL"] });
   await pub.connect();

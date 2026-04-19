@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { useSwarmStore } from "@/stores/swarm.store";
 import type { ExecutionState, ArenaEntry, AuditEntry } from "@/stores/swarm.store";
 import { PnlChart } from "./PnlChart";
+import { DepositModal } from "./DepositModal";
 
 type RightTab = "portfolio" | "arena" | "veri";
 
@@ -13,19 +15,34 @@ function PortfolioTab() {
   const portfolio = useSwarmStore((s) => s.portfolio);
   const executions = useSwarmStore((s) => s.executions);
   const pnlHistory = useSwarmStore((s) => s.pnlHistory);
+  const { connected, publicKey } = useWallet();
+  const [showDeposit, setShowDeposit] = useState(false);
 
   const daily = portfolio?.dailyReturnPct ?? 0;
+  const walletAddr = publicKey?.toBase58();
 
   return (
     <>
+      {showDeposit && <DepositModal onClose={() => setShowDeposit(false)} />}
+
       <div className="panel-header">
         <span className="panel-title">Portfolio</span>
         <span className="panel-badge">
-          {portfolio?.walletAddress
+          {walletAddr
+            ? walletAddr.slice(0, 4) + "…" + walletAddr.slice(-4)
+            : portfolio?.walletAddress
             ? portfolio.walletAddress.slice(0, 6) + "…" + portfolio.walletAddress.slice(-4)
             : "No wallet"}
         </span>
       </div>
+
+      {connected && (
+        <div style={{ padding: "8px 14px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+          <button className="deposit-btn" onClick={() => setShowDeposit(true)}>
+            + Deposit to Vault
+          </button>
+        </div>
+      )}
 
       <div className="portfolio-section">
         <div className="portfolio-value">
