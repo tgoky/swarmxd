@@ -16,7 +16,7 @@ function SwarmWebSocketMount({ children }: { children: React.ReactNode }) {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const endpoint =
-    process.env["NEXT_PUBLIC_SOLANA_RPC_URL"] ?? clusterApiUrl(WalletAdapterNetwork.Devnet);
+    process.env["NEXT_PUBLIC_SOLANA_RPC_URL"] ?? clusterApiUrl(WalletAdapterNetwork.Testnet);
 
   const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
 
