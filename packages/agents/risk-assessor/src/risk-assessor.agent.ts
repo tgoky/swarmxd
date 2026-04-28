@@ -312,20 +312,23 @@ Respond with JSON only:
 
   private scoreLiquidityRisk(action: AgentProposal["action"]): number {
     if (action.type === "rebalance") {
-      // Native SOL is maximally liquid — no slippage risk on exit
-      if (action.params.fromProtocol === "native") return 15;
       const fraction = action.params.fraction;
-      return fraction > 0.3 ? 60 : 30;
+      // FROM native: exit is maximally liquid; risk is on the destination side
+      const exitRisk = action.params.fromProtocol === "native" ? 10 : (fraction > 0.3 ? 60 : 30);
+      // TO unknown/placeholder pool: entry liquidity is unknown
+      const entryRisk = (action.params.toPool === "best-in-range" || action.params.toPool === "best-available") ? 35 : 10;
+      return Math.max(exitRisk, entryRisk);
     }
     return 35;
   }
 
   private scoreImpermanentLossRisk(action: AgentProposal["action"]): number {
     if (action.type === "rebalance") {
-      // Native SOL repositioning is a simple swap, not an LP add — no IL
-      if (action.params.fromProtocol === "native" || action.params.toProtocol === "native") {
+      // Native→native: pure swap, no LP position entered — no IL
+      if (action.params.fromProtocol === "native" && action.params.toProtocol === "native") {
         return 10;
       }
+      // Entering an LP from native SOL: IL risk depends on the destination pair
       return 45;
     }
     if (action.type === "add_liquidity") return 45;
@@ -343,12 +346,17 @@ Respond with JSON only:
       const maxExisting = Math.max(...portfolio.positions.map((p) => p.valueUsd), 0);
       const currentConcentration = maxExisting / portfolio.totalValueUsd;
 
-      // Post-trade: source position shrinks by fraction, destination is new position of same size
+      // Post-trade: source position shrinks by fraction, destination becomes new position
       const remainingSource = currentConcentration * (1 - fraction);
       const newDest = currentConcentration * fraction;
       const postTradeMax = Math.max(remainingSource, newDest);
 
-      // If concentration isn't getting worse, this is low risk
+      // Penalise moving into an unresolved placeholder pool — destination is unknown
+      const destinationUnknown =
+        action.params.toPool === "best-in-range" || action.params.toPool === "best-available";
+      if (destinationUnknown && postTradeMax > 0.5) return 55; // elevated, not a hard block
+
+      // If not increasing concentration, low risk
       if (postTradeMax <= currentConcentration + 0.05) return 25;
       if (postTradeMax > 0.5) return 80;
       if (postTradeMax > 0.35) return 55;
