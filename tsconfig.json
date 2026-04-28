@@ -19,7 +19,11 @@
     "baseUrl": ".",
     "paths": {
       "@swarm/shared": ["packages/shared/src/index.ts"],
-      "@swarm/conductor": ["packages/conductor/src/index.ts"]
+      "@swarm/conductor": ["packages/conductor/src/index.ts"],
+      "@swarm/agent-researcher": ["packages/agents/researcher/src/index.ts"],
+      "@swarm/agent-risk-assessor": ["packages/agents/risk-assessor/src/index.ts"],
+      "@swarm/agent-executor": ["packages/agents/executor/src/index.ts"],
+      "@swarm/agent-rebalancer": ["packages/agents/rebalancer/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "dist", ".next"]
