@@ -25,6 +25,8 @@ export class SignalDetector {
   private priceCache = new Map<string, { price: number; timestamp: Date }>();
   private pollInterval?: NodeJS.Timeout;
   private previousPortfolioValue?: number;
+  private lastRebalanceSignalAt = new Map<string, number>();
+  private readonly rebalanceSignalCooldownMs = 5 * 60_000; // 5 minutes per position
 
   constructor(
     private readonly config: SwarmConfig,
@@ -287,6 +289,9 @@ export class SignalDetector {
     for (const position of portfolio.positions) {
       const weight = position.valueUsd / portfolio.totalValueUsd;
       if (weight > 0.40) {
+        const lastSent = this.lastRebalanceSignalAt.get(position.id) ?? 0;
+        if (Date.now() - lastSent < this.rebalanceSignalCooldownMs) return null;
+        this.lastRebalanceSignalAt.set(position.id, Date.now());
         return this.buildSignal("rebalance_due", "medium", "scheduled", {
           positionId: position.id,
           weight,

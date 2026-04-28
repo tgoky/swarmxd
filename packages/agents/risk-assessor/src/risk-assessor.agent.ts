@@ -221,7 +221,8 @@ Respond with JSON only:
 
     try {
       const response = await this.think("Respond JSON only. No markdown.", votePrompt, 256);
-      const vote = JSON.parse(response) as {
+      const cleanedVote = response.replace(/^```(?:json)?\s*/m, "").replace(/\s*```\s*$/m, "").trim();
+      const vote = JSON.parse(cleanedVote) as {
         decision: "approve" | "reject" | "abstain";
         confidence: number;
         reasoning: string;

@@ -135,7 +135,8 @@ Schema: {
     };
 
     try {
-      parsed = JSON.parse(aiResponse);
+      const cleaned = aiResponse.replace(/^```(?:json)?\s*/m, "").replace(/\s*```\s*$/m, "").trim();
+      parsed = JSON.parse(cleaned);
     } catch {
       this.logger.warn({ aiResponse }, "Failed to parse AI research response");
       return null;
@@ -308,7 +309,8 @@ Is this a good trade? Respond with JSON only:
 
     try {
       const response = await this.think("Respond JSON only. No markdown.", votePrompt, 256);
-      const vote = JSON.parse(response) as { decision: "approve" | "reject" | "abstain"; confidence: number; reasoning: string };
+      const cleanedVote = response.replace(/^```(?:json)?\s*/m, "").replace(/\s*```\s*$/m, "").trim();
+      const vote = JSON.parse(cleanedVote) as { decision: "approve" | "reject" | "abstain"; confidence: number; reasoning: string };
 
       await this.castVote({
         proposalId: proposal.id,
