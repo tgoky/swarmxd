@@ -286,8 +286,8 @@ Respond with JSON only:
   // ── Scoring heuristics ────────────────────────────────────────────────────
 
   private scoreSmartContractRisk(action: AgentProposal["action"]): number {
-    // In production: lookup protocol audit DB, TVL age, incident history
     const protocolRiskMap: Record<string, number> = {
+      native: 10,     // Native SOL — no smart contract at all
       raydium: 25,    // Audited, long track record
       orca: 20,       // Conservative, audited
       meteora: 40,    // Newer, less battle-tested
@@ -311,22 +311,24 @@ Respond with JSON only:
   }
 
   private scoreLiquidityRisk(action: AgentProposal["action"]): number {
-    // Low TVL = hard to exit without major slippage
-    // Would use real depth data in production
     if (action.type === "rebalance") {
+      // Native SOL is maximally liquid — no slippage risk on exit
+      if (action.params.fromProtocol === "native") return 15;
       const fraction = action.params.fraction;
-      return fraction > 0.3 ? 60 : 30; // Moving > 30% of portfolio = liquidity risk
+      return fraction > 0.3 ? 60 : 30;
     }
     return 35;
   }
 
   private scoreImpermanentLossRisk(action: AgentProposal["action"]): number {
-    // Correlated pairs (SOL/mSOL, USDC/USDT) have low IL risk
-    // Volatile pairs (SOL/BONK) have high IL risk
-    if (action.type === "add_liquidity" || action.type === "rebalance") {
-      // Would check actual token pair correlation in production
-      return 45; // Moderate default
+    if (action.type === "rebalance") {
+      // Native SOL repositioning is a simple swap, not an LP add — no IL
+      if (action.params.fromProtocol === "native" || action.params.toProtocol === "native") {
+        return 10;
+      }
+      return 45;
     }
+    if (action.type === "add_liquidity") return 45;
     return 20;
   }
 
@@ -336,13 +338,28 @@ Respond with JSON only:
   ): number {
     if (portfolio.totalValueUsd === 0) return 50;
 
-    if (action.type === "rebalance" || action.type === "add_liquidity") {
-      // Check if this trade would create > 40% concentration in one pool
-      const estimatedNewPosition = portfolio.totalValueUsd * 0.2; // rough
+    if (action.type === "rebalance") {
+      const fraction = action.params.fraction;
+      const maxExisting = Math.max(...portfolio.positions.map((p) => p.valueUsd), 0);
+      const currentConcentration = maxExisting / portfolio.totalValueUsd;
+
+      // Post-trade: source position shrinks by fraction, destination is new position of same size
+      const remainingSource = currentConcentration * (1 - fraction);
+      const newDest = currentConcentration * fraction;
+      const postTradeMax = Math.max(remainingSource, newDest);
+
+      // If concentration isn't getting worse, this is low risk
+      if (postTradeMax <= currentConcentration + 0.05) return 25;
+      if (postTradeMax > 0.5) return 80;
+      if (postTradeMax > 0.35) return 55;
+      return 25;
+    }
+
+    if (action.type === "add_liquidity") {
+      const estimatedNewPosition = portfolio.totalValueUsd * 0.2;
       const maxExisting = Math.max(...portfolio.positions.map((p) => p.valueUsd), 0);
       const postTradeMax = Math.max(maxExisting, estimatedNewPosition);
       const concentration = postTradeMax / portfolio.totalValueUsd;
-
       if (concentration > 0.5) return 80;
       if (concentration > 0.35) return 55;
       return 25;

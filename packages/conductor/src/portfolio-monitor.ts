@@ -59,28 +59,41 @@ export class PortfolioMonitor {
       return this.cachedSolPrice;
     }
 
-    try {
+    const tryJupiter = async (): Promise<number> => {
       const res = await fetch(
         `https://price.jup.ag/v6/price?ids=${SOL_MINT}`,
         { signal: AbortSignal.timeout(5000) }
       );
       if (!res.ok) throw new Error(`Jupiter price API ${res.status}`);
+      const json = await res.json() as { data: Record<string, { price: number }> };
+      return json.data[SOL_MINT]?.price ?? 0;
+    };
 
-      const json = await res.json() as {
-        data: Record<string, { price: number }>;
-      };
+    const tryCoingecko = async (): Promise<number> => {
+      const res = await fetch(
+        "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd",
+        { signal: AbortSignal.timeout(5000) }
+      );
+      if (!res.ok) throw new Error(`CoinGecko price API ${res.status}`);
+      const json = await res.json() as { solana: { usd: number } };
+      return json.solana?.usd ?? 0;
+    };
 
-      const price = json.data[SOL_MINT]?.price ?? 0;
-      if (price > 0) {
-        this.cachedSolPrice = price;
-        this.lastPriceFetch = Date.now();
+    for (const source of [tryJupiter, tryCoingecko]) {
+      try {
+        const price = await source();
+        if (price > 0) {
+          this.cachedSolPrice = price;
+          this.lastPriceFetch = Date.now();
+          return price;
+        }
+      } catch {
+        // try next source
       }
-      return price;
-    } catch (err) {
-      this.logger.warn({ err }, "SOL price fetch failed — using cached value");
-      // Fall back to a rough estimate if cache is empty
-      return this.cachedSolPrice || 150;
     }
+
+    this.logger.warn("SOL price fetch failed — using cached value");
+    return this.cachedSolPrice || 150;
   }
 
   private async refresh(): Promise<void> {
