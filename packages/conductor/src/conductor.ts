@@ -161,7 +161,7 @@ export class SwarmConductor {
       // If we have votes from all 4 agents OR voting window expired
       const expectedVoters = 4;
       const hasAllVotes = proposalVotes.length >= expectedVoters;
-      const windowExpired = proposal.createdAt.getTime() + this.votingWindow < now;
+      const windowExpired = new Date(proposal.createdAt).getTime() + this.votingWindow < now;
 
       if (hasAllVotes || windowExpired) {
         await this.finalizeConsensus(proposal, proposalVotes);
