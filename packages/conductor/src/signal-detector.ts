@@ -195,7 +195,7 @@ export class SignalDetector {
           liquidityDepth: { bpsFrom2pct: 0, bpsFrom5pct: 0, bpsFrom10pct: 0 },
           impermanentLossEstimate: 0,
           timestamp: new Date(),
-          previousApy: existing?.apyTotal,
+          ...(existing ? { previousApy: existing.apyTotal } : {}),
         });
       }
     } catch (err) {
@@ -239,7 +239,7 @@ export class SignalDetector {
           liquidityDepth: { bpsFrom2pct: 0, bpsFrom5pct: 0, bpsFrom10pct: 0 },
           impermanentLossEstimate: 0,
           timestamp: new Date(),
-          previousApy: existing?.apyTotal,
+          ...(existing ? { previousApy: existing.apyTotal } : {}),
         });
       }
     } catch (err) {
