@@ -29,6 +29,7 @@ import type {
 import { CHANNELS, MessageBus, createLogger } from "@swarm/shared";
 import { SignalDetector } from "./signal-detector.js";
 import { PortfolioMonitor } from "./portfolio-monitor.js";
+import { PoolFetcher } from "./pool-fetcher.js";
 import { OnChainMemory } from "./on-chain-memory.js";
 import { RiskGuard } from "./risk-guard.js";
 
@@ -44,6 +45,7 @@ export class SwarmConductor {
   private readonly id = `conductor-${nanoid(8)}`;
   private readonly logger;
   private readonly bus: MessageBus;
+  private readonly poolFetcher: PoolFetcher;
   private readonly signalDetector: SignalDetector;
   private readonly portfolioMonitor: PortfolioMonitor;
   private readonly onChainMemory: OnChainMemory;
@@ -66,7 +68,8 @@ export class SwarmConductor {
   ) {
     this.logger = createLogger({ agentRole: "conductor", agentId: this.id });
     this.bus = bus;
-    this.signalDetector = new SignalDetector(config, this.logger);
+    this.poolFetcher = new PoolFetcher(this.logger);
+    this.signalDetector = new SignalDetector(config, this.logger, this.poolFetcher);
     this.portfolioMonitor = new PortfolioMonitor(config, this.logger);
     this.onChainMemory = new OnChainMemory(config, this.logger);
     this.riskGuard = new RiskGuard(config, this.logger);
@@ -92,6 +95,7 @@ export class SwarmConductor {
     try { await this.bus.connect(); } catch { /* already connected */ }
     await this.onChainMemory.initialize();
     await this.portfolioMonitor.start(this.state.portfolio.walletAddress);
+    await this.poolFetcher.start(); // fetch pool data before signal detector starts
     await this.signalDetector.start();
 
     this.registerBusHandlers();
@@ -107,6 +111,7 @@ export class SwarmConductor {
   async stop(): Promise<void> {
     clearInterval(this.tickInterval);
     await this.signalDetector.stop();
+    await this.poolFetcher.stop();
     await this.portfolioMonitor.stop();
     await this.bus.publish(CHANNELS.SWARM_HALT, { reason: "conductor shutdown" });
     await new Promise((r) => setTimeout(r, 1000)); // let halt message propagate
@@ -130,6 +135,12 @@ export class SwarmConductor {
     const updatedPortfolio = await this.portfolioMonitor.getPortfolio();
     this.state.portfolio = updatedPortfolio;
     await this.bus.publish(CHANNELS.PORTFOLIO_UPDATE, updatedPortfolio);
+
+    // 1b. Broadcast fresh pool data so agents have real market data
+    const poolData = this.poolFetcher.getPools();
+    if (poolData.length > 0) {
+      await this.bus.publish(CHANNELS.POOL_DATA_UPDATE, poolData);
+    }
 
     // 2. Check stop-loss circuit breaker
     const stopLossBreach = this.riskGuard.checkStopLoss(updatedPortfolio);

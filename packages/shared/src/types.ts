@@ -84,8 +84,8 @@ export interface Position {
   poolAddress: string;
   tokenA: string;
   tokenB: string;
-  amountA: bigint;
-  amountB: bigint;
+  amountA: number;
+  amountB: number;
   valueUsd: number;
   entryValueUsd: number;
   pnlUsd: number;
@@ -307,6 +307,7 @@ export const CHANNELS = {
   CONSENSUS_REACHED: "swarm:consensus:reached",
   EXECUTION_UPDATE: "swarm:execution:update",
   PORTFOLIO_UPDATE: "swarm:portfolio:update",
+  POOL_DATA_UPDATE: "swarm:pool:update",
   AGENT_HEARTBEAT: "swarm:agent:heartbeat",
   SWARM_HALT: "swarm:halt",
   SWARM_RESUME: "swarm:resume",
@@ -328,7 +329,7 @@ export interface SwarmConfig {
   solana: {
     rpcUrl: string;
     wsUrl: string;
-    network: "mainnet-beta" | "devnet" | "localnet";
+    network: "mainnet-beta" | "devnet" | "localnet" | "testnet";
   };
   risk: {
     maxPortfolioValueUsd: number;

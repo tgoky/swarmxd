@@ -53,9 +53,12 @@ proposals through consensus voting.`;
   }
 
   protected async registerSubscriptions(): Promise<void> {
-    // Receive updated pool data from conductor
     this.bus.subscribe(CHANNELS.PORTFOLIO_UPDATE, async (msg) => {
       this.latestPortfolio = msg.payload as Portfolio;
+    });
+
+    this.bus.subscribe(CHANNELS.POOL_DATA_UPDATE, async (msg) => {
+      this.latestPoolData = msg.payload as PoolData[];
     });
 
     // Vote on proposals from other agents

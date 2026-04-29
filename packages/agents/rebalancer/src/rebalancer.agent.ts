@@ -85,6 +85,10 @@ recommending any rebalance. You compound rewards efficiently and keep gas costs 
       await this.checkDriftAndPropose();
     });
 
+    this.bus.subscribe(CHANNELS.POOL_DATA_UPDATE, async (msg) => {
+      this.latestPoolData = msg.payload as PoolData[];
+    });
+
     // Vote on proposals from a portfolio-health perspective
     this.bus.subscribe(CHANNELS.PROPOSAL_NEW, async (msg) => {
       const proposal = msg.payload as AgentProposal;
@@ -201,18 +205,23 @@ recommending any rebalance. You compound rewards efficiently and keep gas costs 
           const gasCostUsd = 0.002; // ~0.002 SOL in gas at current prices
           const breakEvenDays = gasCostUsd / ((overProtocol.currentApy / 365 / 100) * excessUsd + 0.0001);
 
+          const destPool = this.findBestPoolAddress(
+            underAllocated.protocol,
+            overProtocol.poolAddress
+          );
+
           opportunities.push({
             type: "drift_correction",
             description: `${protocol} over-allocated by ${(driftPct * 100).toFixed(1)}% — rotate ${excessUsd.toFixed(0)} to ${underAllocated.protocol}`,
-            estimatedGainUsd: excessUsd * (overProtocol.currentApy / 100 / 365) * 30, // 30-day gain estimate
+            estimatedGainUsd: excessUsd * (overProtocol.currentApy / 100 / 365) * 30,
             estimatedCostUsd: gasCostUsd,
-            netBenefit: excessUsd * 0.01 - gasCostUsd, // simplified
+            netBenefit: excessUsd * 0.01 - gasCostUsd,
             urgency: driftPct > 0.15 ? "high" : "medium",
             action: {
               type: "rebalance",
               params: {
                 fromPool: overProtocol.poolAddress,
-                toPool: "best-available",
+                toPool: destPool,
                 fromProtocol: protocol as never,
                 toProtocol: underAllocated.protocol as never,
                 fraction: Math.min(fractionToMove, 0.5),
@@ -260,20 +269,23 @@ recommending any rebalance. You compound rewards efficiently and keep gas costs 
 
     const totalStuckValue = outOfRange.reduce((s, p) => s + p.valueUsd, 0);
 
+    const fromPos = outOfRange[0]!;
+    const bestInRange = this.findBestPoolAddress(fromPos.protocol, fromPos.poolAddress);
+
     return {
       type: "fee_optimization",
       description: `${outOfRange.length} position(s) out of range, $${totalStuckValue.toFixed(0)} earning 0% — reposition`,
-      estimatedGainUsd: totalStuckValue * 0.3 / 365 * 30, // 30-day gain if repositioned at ~30% APY
+      estimatedGainUsd: (totalStuckValue * 0.3) / 365 * 30,
       estimatedCostUsd: 0.005 * outOfRange.length,
       netBenefit: totalStuckValue * 0.005 - 0.005 * outOfRange.length,
       urgency: "medium",
       action: {
         type: "rebalance",
         params: {
-          fromPool: outOfRange[0]!.poolAddress,
-          toPool: "best-in-range",
-          fromProtocol: outOfRange[0]!.protocol as never,
-          toProtocol: outOfRange[0]!.protocol as never,
+          fromPool: fromPos.poolAddress,
+          toPool: bestInRange,
+          fromProtocol: fromPos.protocol as never,
+          toProtocol: fromPos.protocol as never,
           fraction: 1.0,
           reason: "CLMM position out of range — repositioning",
           estimatedApyGain: 30,
@@ -281,6 +293,33 @@ recommending any rebalance. You compound rewards efficiently and keep gas costs 
         },
       },
     };
+  }
+
+  // ── Pool resolution ───────────────────────────────────────────────────────
+
+  private findBestPoolAddress(
+    preferProtocol: string,
+    excludePool?: string
+  ): string {
+    const candidates = this.latestPoolData
+      .filter(
+        (p) =>
+          p.protocol === preferProtocol &&
+          p.tvlUsd > 100_000 &&
+          p.apyTotal > 0 &&
+          p.address !== excludePool
+      )
+      .sort((a, b) => b.apyTotal - a.apyTotal);
+
+    // Fall back to any protocol if preferred has nothing
+    if (candidates.length === 0) {
+      const any = this.latestPoolData
+        .filter((p) => p.tvlUsd > 100_000 && p.apyTotal > 0 && p.address !== excludePool)
+        .sort((a, b) => b.apyTotal - a.apyTotal)[0];
+      return any?.address ?? "best-available";
+    }
+
+    return candidates[0]!.address;
   }
 
   // ── AI reasoning ──────────────────────────────────────────────────────────

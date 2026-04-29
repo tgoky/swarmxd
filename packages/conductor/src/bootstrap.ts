@@ -89,6 +89,7 @@ const config: SwarmConfig = {
   protocols: {
     enabled: ["jupiter", "raydium", "orca", "meteora", "kamino"],
     maxExposurePct: {
+      native: 1.0,  // native SOL — no protocol risk cap
       jupiter: 0,
       raydium: 0.35,
       orca: 0.30,
